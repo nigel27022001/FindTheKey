@@ -1,0 +1,243 @@
+/**
+ * useGameState.ts
+ * Central game-state hook with full TypeScript types.
+ */
+
+import { useState, useCallback, useRef } from "react";
+import { generateProblem, HINT_COUNTS } from "../lib/problemGenerator";
+import type { Problem, Difficulty } from "../lib/problemGenerator";
+import {
+  computeClosure,
+  isSuperkey,
+  isCandidateKey,
+  arraysEqual,
+} from "../lib/fdAlgorithms";
+import type { FD } from "../lib/fdAlgorithms";
+
+// ── Public types ──────────────────────────────────────────────────────────────
+
+export type FeedbackType = "correct" | "wrong" | "hint" | "info";
+
+export interface FeedbackState {
+  type:   FeedbackType;
+  title:  string;
+  body?:  string;
+  keys?:  string[][];
+}
+
+export interface ToastState {
+  title: string;
+  msg:   string;
+}
+
+export interface LiveClosure {
+  closure: string[];
+  isSK:    boolean;
+  isCK:    boolean;
+}
+
+export interface GameState {
+  // Session stats
+  score:      number;
+  streak:     number;
+  round:      number;
+  solved:     number;
+  total:      number;
+  // Per-problem
+  difficulty: Difficulty;
+  problem:    Problem | null;
+  selected:   string[];
+  foundKeys:  string[][];
+  hintsLeft:  number;
+  feedback:   FeedbackState | null;
+  allSolved:  boolean;
+  newKey:     string[] | null;
+  toast:      ToastState | null;
+  // Actions
+  loadProblem:     (diff?: Difficulty) => void;
+  changeDifficulty:(diff: Difficulty)  => void;
+  toggleAttr:      (attr: string)      => void;
+  clearSelection:  ()                  => void;
+  submitAnswer:    ()                  => void;
+  showHint:        ()                  => void;
+  // Derived
+  getLiveClosure:    () => LiveClosure;
+  getHighlightedFDs: () => boolean[];
+}
+
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const POINTS: Record<Difficulty, number> = {
+  easy: 10, medium: 20, hard: 35, expert: 50,
+};
+
+// ── Hook ──────────────────────────────────────────────────────────────────────
+
+export function useGameState(): GameState {
+  const [score,      setScore]      = useState(0);
+  const [streak,     setStreak]     = useState(0);
+  const [round,      setRound]      = useState(1);
+  const [solved,     setSolved]     = useState(0);
+  const [total,      setTotal]      = useState(0);
+  const [difficulty, setDifficulty] = useState<Difficulty>("easy");
+  const [problem,    setProblem]    = useState<Problem | null>(null);
+  const [selected,   setSelected]   = useState<string[]>([]);
+  const [foundKeys,  setFoundKeys]  = useState<string[][]>([]);
+  const [hintsLeft,  setHintsLeft]  = useState(3);
+  const [feedback,   setFeedback]   = useState<FeedbackState | null>(null);
+  const [allSolved,  setAllSolved]  = useState(false);
+  const [newKey,     setNewKey]     = useState<string[] | null>(null);
+  const [toast,      setToast]      = useState<ToastState | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function showToast(title: string, msg: string): void {
+    setToast({ title, msg });
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 3200);
+  }
+
+  function getPoints(currentStreak: number): number {
+    return POINTS[difficulty] + (currentStreak > 1 ? currentStreak * 2 : 0);
+  }
+
+  const loadProblem = useCallback((diff: Difficulty = difficulty): void => {
+    setProblem(generateProblem(diff));
+    setSelected([]);
+    setFoundKeys([]);
+    setHintsLeft(HINT_COUNTS[diff]);
+    setFeedback(null);
+    setAllSolved(false);
+    setNewKey(null);
+  }, [difficulty]);
+
+  function changeDifficulty(diff: Difficulty): void {
+    setDifficulty(diff);
+    loadProblem(diff);
+  }
+
+  function toggleAttr(attr: string): void {
+    if (allSolved) return;
+    setSelected(prev =>
+      prev.includes(attr) ? prev.filter(a => a !== attr) : [...prev, attr]
+    );
+    setFeedback(null);
+  }
+
+  function clearSelection(): void {
+    setSelected([]);
+    setFeedback(null);
+  }
+
+  function submitAnswer(): void {
+    if (!selected.length) {
+      setFeedback({ type: "hint", title: "Nothing selected", body: "Click attributes to build a candidate key first." });
+      return;
+    }
+    if (!problem) return;
+
+    const sel = [...selected].sort();
+    const { allAttrs, fds, candidateKeys } = problem;
+
+    if (foundKeys.some(k => arraysEqual(k, sel))) {
+      setFeedback({ type: "hint", title: "Already found", body: `{${sel.join(", ")}} is already in your list. Try finding another key.` });
+      return;
+    }
+
+    if (isCandidateKey(sel, allAttrs, fds)) {
+      const newFound  = [...foundKeys, sel];
+      const newStreak = streak + 1;
+      const pts       = getPoints(newStreak);
+
+      setFoundKeys(newFound);
+      setNewKey(sel);
+      setScore(s  => s + pts);
+      setStreak(newStreak);
+      setSolved(s => s + 1);
+      setTotal(t  => t + 1);
+
+      if (newStreak === 3) showToast("Streak ×3", "Three correct in a row!");
+      if (newStreak === 5) showToast("Streak ×5", "Five correct in a row!");
+
+      if (newFound.length >= candidateKeys.length) {
+        setAllSolved(true);
+        setRound(r => r + 1);
+        const bonus = candidateKeys.length > 1 ? candidateKeys.length * 10 : 0;
+        if (bonus) setScore(s => s + bonus);
+        setFeedback({
+          type:  "correct",
+          title: `All ${candidateKeys.length} key${candidateKeys.length > 1 ? "s" : ""} found! +${pts + bonus} pts`,
+          keys:  candidateKeys,
+        });
+      } else {
+        setFeedback({
+          type:  "correct",
+          title: `Correct! +${pts} pts`,
+          body:  `{${sel.join(", ")}} is a candidate key. Found ${newFound.length} of ${candidateKeys.length}.`,
+        });
+      }
+    } else if (isSuperkey(sel, allAttrs, fds)) {
+      setStreak(0);
+      setTotal(t => t + 1);
+      setFeedback({
+        type:  "wrong",
+        title: "Superkey — not minimal",
+        body:  `{${sel.join(", ")}} determines all attributes, but a proper subset is also a superkey. Remove an attribute.`,
+      });
+    } else {
+      setStreak(0);
+      setTotal(t => t + 1);
+      const cl = [...computeClosure(sel, fds)].sort();
+      setFeedback({
+        type:  "wrong",
+        title: "Not a superkey",
+        body:  `{${sel.join(", ")}}⁺ = {${cl.join(", ")}} — does not cover all attributes.`,
+      });
+    }
+
+    setSelected([]);
+  }
+
+  function showHint(): void {
+    if (!problem) return;
+    if (hintsLeft <= 0) {
+      setFeedback({ type: "hint", title: "No hints remaining", body: "Work through the closures step by step." });
+      return;
+    }
+    const unfound = problem.candidateKeys.find(k => !foundKeys.some(fk => arraysEqual(fk, k)));
+    if (!unfound) {
+      setFeedback({ type: "info", title: "All keys found!", body: "Nothing left to hint at." });
+      return;
+    }
+    setHintsLeft(h => h - 1);
+    if (unfound.length === 1) {
+      setFeedback({ type: "hint", title: "Hint", body: `One candidate key contains just the attribute "${unfound[0]}".` });
+    } else {
+      const partial = unfound.slice(0, Math.ceil(unfound.length / 2));
+      setFeedback({ type: "hint", title: "Hint", body: `One candidate key contains {${partial.join(", ")}} and has ${unfound.length} attribute(s) total.` });
+    }
+  }
+
+  function getLiveClosure(): LiveClosure {
+    if (!problem || !selected.length) return { closure: [], isSK: false, isCK: false };
+    return {
+      closure: [...computeClosure(selected, problem.fds)].sort(),
+      isSK:    isSuperkey(selected, problem.allAttrs, problem.fds),
+      isCK:    isCandidateKey(selected, problem.allAttrs, problem.fds),
+    };
+  }
+
+  function getHighlightedFDs(): boolean[] {
+    if (!problem) return [];
+    return problem.fds.map((fd: FD) =>
+      selected.length > 0 && fd.lhs.every(a => selected.includes(a))
+    );
+  }
+
+  return {
+    score, streak, round, solved, total,
+    difficulty, problem, selected, foundKeys, hintsLeft,
+    feedback, allSolved, newKey, toast,
+    loadProblem, changeDifficulty, toggleAttr, clearSelection, submitAnswer, showHint,
+    getLiveClosure, getHighlightedFDs,
+  };
+}
