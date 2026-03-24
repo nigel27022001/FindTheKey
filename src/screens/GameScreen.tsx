@@ -96,7 +96,7 @@ export const GameScreen: FC<GameScreenProps> = ({ game, onGoToMenu }) => {
             onSubmit={submitAnswer}
             onHint={showHint}
             onClear={clearSelection}
-            onNext={loadProblem}
+            onNext={() => loadProblem()}
             hintsLeft={hintsLeft}
             allSolved={allSolved}
           />
