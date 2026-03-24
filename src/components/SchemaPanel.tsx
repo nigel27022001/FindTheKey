@@ -16,14 +16,14 @@ interface SchemaPanelProps {
 }
 
 export const SchemaPanel: FC<SchemaPanelProps> = ({ problem, selected, allSolved, onToggleAttr }) => (
-  <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 mb-3">
+  <div className="bg-white border border-gray-200 rounded-xl p-6 mb-3 shadow-sm">
     <SectionLabel>Schema</SectionLabel>
 
-    <div className="font-mono text-base font-medium text-gray-900 dark:text-gray-100 mb-3">
+    <div className="font-mono text-xl font-bold text-gray-800 mb-3">
       R({problem.allAttrs.join(", ")})
     </div>
 
-    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+    <p className="text-base text-gray-500 mb-3">
       Click attributes to build a candidate key:
     </p>
 
@@ -40,10 +40,7 @@ export const SchemaPanel: FC<SchemaPanelProps> = ({ problem, selected, allSolved
     </div>
 
     {selected.length > 0 && (
-      <LiveClosureReadout
-        selected={selected}
-        problem={problem}
-      />
+      <LiveClosureReadout selected={selected} problem={problem} />
     )}
   </div>
 );
@@ -62,15 +59,15 @@ const LiveClosureReadout: FC<LiveClosureProps> = ({ selected, problem }) => {
   const isCK    = isCandidateKey(selected, allAttrs, fds);
 
   return (
-    <div className="mt-3 px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs text-gray-500 dark:text-gray-400 font-mono animate-fade-up">
+    <div className="mt-3 px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-base font-mono text-gray-600 animate-fade-up">
       {"{"}{[...selected].sort().join(", ")}{"}"}⁺ = {"{"}{closure.join(", ")}{"}"}
       {" "}
       {isCK ? (
-        <span className="text-green-600 dark:text-green-400 font-medium">✓ candidate key</span>
+        <span className="text-green-600 font-bold">✓ candidate key</span>
       ) : isSK ? (
-        <span className="text-amber-600 dark:text-amber-400">superkey, not minimal</span>
+        <span className="text-amber-600 font-semibold">⚠ superkey, not minimal</span>
       ) : (
-        <span className="text-red-500 dark:text-red-400">not a superkey</span>
+        <span className="text-red-600 font-semibold">✗ not a superkey</span>
       )}
     </div>
   );

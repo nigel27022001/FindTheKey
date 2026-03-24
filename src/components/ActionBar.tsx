@@ -1,6 +1,7 @@
 /**
  * ActionBar.tsx
  * Submit / Hint / Clear / Next problem buttons.
+ * When allSolved: only shows Next problem button.
  */
 
 import type { FC } from "react";
@@ -16,54 +17,55 @@ interface ActionBarProps {
 
 export const ActionBar: FC<ActionBarProps> = ({
   onSubmit, onHint, onClear, onNext, hintsLeft, allSolved,
-}) => (
-  <div className="flex flex-wrap gap-2 mb-2">
-    <button
-      onClick={onSubmit}
-      className="font-mono text-sm px-5 py-2 rounded-lg border font-medium
-                 bg-green-50 dark:bg-green-900/30 border-green-400 dark:border-green-600
-                 text-green-700 dark:text-green-300
-                 hover:bg-green-100 dark:hover:bg-green-900/50
-                 active:scale-95 transition-all"
-    >
-      Submit key
-    </button>
+}) => {
+  if (allSolved) {
+    return (
+      <div className="flex flex-wrap gap-2 mb-3">
+        <button
+          onClick={onNext}
+          className="font-mono text-lg px-7 py-3 rounded-xl border-2 font-bold
+                     bg-blue-50 border-blue-400 text-blue-700
+                     hover:bg-blue-100 active:scale-95 transition-all shadow-sm"
+        >
+          Next problem →
+        </button>
+      </div>
+    );
+  }
 
-    <button
-      onClick={onHint}
-      disabled={hintsLeft === 0}
-      className={[
-        "font-mono text-sm px-5 py-2 rounded-lg border transition-all active:scale-95",
-        hintsLeft === 0
-          ? "border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-600 cursor-default"
-          : "bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40 cursor-pointer",
-      ].join(" ")}
-    >
-      Hint ({hintsLeft})
-    </button>
-
-    <button
-      onClick={onClear}
-      className="font-mono text-sm px-5 py-2 rounded-lg border
-                 border-gray-200 dark:border-gray-700
-                 text-gray-500 dark:text-gray-400
-                 hover:bg-gray-50 dark:hover:bg-gray-800
-                 active:scale-95 transition-all"
-    >
-      Clear
-    </button>
-
-    {allSolved && (
+  return (
+    <div className="flex flex-wrap gap-2 mb-3">
       <button
-        onClick={onNext}
-        className="font-mono text-sm px-5 py-2 rounded-lg border font-medium
-                   bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700
-                   text-blue-700 dark:text-blue-300
-                   hover:bg-blue-100 dark:hover:bg-blue-900/40
-                   active:scale-95 transition-all"
+        onClick={onSubmit}
+        className="font-mono text-lg px-7 py-3 rounded-xl border-2 font-bold
+                   bg-green-50 border-green-400 text-green-700
+                   hover:bg-green-100 active:scale-95 transition-all shadow-sm"
       >
-        Next problem →
+        Submit key
       </button>
-    )}
-  </div>
-);
+
+      <button
+        onClick={onHint}
+        disabled={hintsLeft === 0}
+        className={[
+          "font-mono text-lg px-7 py-3 rounded-xl border-2 font-bold transition-all active:scale-95 shadow-sm",
+          hintsLeft === 0
+            ? "bg-gray-50 border-gray-200 text-gray-300 cursor-default"
+            : "bg-amber-50 border-amber-400 text-amber-700 hover:bg-amber-100 cursor-pointer",
+        ].join(" ")}
+      >
+        Hint ({hintsLeft})
+      </button>
+
+      <button
+        onClick={onClear}
+        className="font-mono text-lg px-7 py-3 rounded-xl border-2 font-bold
+                   bg-white border-gray-300 text-gray-500
+                   hover:border-gray-400 hover:text-gray-700
+                   active:scale-95 transition-all shadow-sm"
+      >
+        Clear
+      </button>
+    </div>
+  );
+};

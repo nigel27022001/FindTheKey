@@ -53,6 +53,7 @@ export interface GameState {
   allSolved:  boolean;
   newKey:     string[] | null;
   toast:      ToastState | null;
+  gameOver:   boolean;
   // Actions
   loadProblem:     (diff?: Difficulty) => void;
   changeDifficulty:(diff: Difficulty)  => void;
@@ -60,6 +61,7 @@ export interface GameState {
   clearSelection:  ()                  => void;
   submitAnswer:    ()                  => void;
   showHint:        ()                  => void;
+  dismissGameOver: ()                  => void;
   // Derived
   getLiveClosure:    () => LiveClosure;
   getHighlightedFDs: () => boolean[];
@@ -88,6 +90,7 @@ export function useGameState(): GameState {
   const [allSolved,  setAllSolved]  = useState(false);
   const [newKey,     setNewKey]     = useState<string[] | null>(null);
   const [toast,      setToast]      = useState<ToastState | null>(null);
+  const [gameOver,   setGameOver]   = useState(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function showToast(title: string, msg: string): void {
@@ -108,6 +111,7 @@ export function useGameState(): GameState {
     setFeedback(null);
     setAllSolved(false);
     setNewKey(null);
+    setGameOver(false);
   }, [difficulty]);
 
   function changeDifficulty(diff: Difficulty): void {
@@ -183,6 +187,7 @@ export function useGameState(): GameState {
         title: "Superkey — not minimal",
         body:  `{${sel.join(", ")}} determines all attributes, but a proper subset is also a superkey. Remove an attribute.`,
       });
+      setGameOver(true);
     } else {
       setStreak(0);
       setTotal(t => t + 1);
@@ -192,6 +197,7 @@ export function useGameState(): GameState {
         title: "Not a superkey",
         body:  `{${sel.join(", ")}}⁺ = {${cl.join(", ")}} — does not cover all attributes.`,
       });
+      setGameOver(true);
     }
 
     setSelected([]);
@@ -233,11 +239,15 @@ export function useGameState(): GameState {
     );
   }
 
+  function dismissGameOver(): void {
+    setGameOver(false);
+  }
+
   return {
     score, streak, round, solved, total,
     difficulty, problem, selected, foundKeys, hintsLeft,
-    feedback, allSolved, newKey, toast,
-    loadProblem, changeDifficulty, toggleAttr, clearSelection, submitAnswer, showHint,
+    feedback, allSolved, newKey, toast, gameOver,
+    loadProblem, changeDifficulty, toggleAttr, clearSelection, submitAnswer, showHint, dismissGameOver,
     getLiveClosure, getHighlightedFDs,
   };
 }

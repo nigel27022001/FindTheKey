@@ -135,9 +135,11 @@ function extractFDs(graph: FDGraph): FD[] {
     }
     return fds;
 }
+// suppress unused warning
+void extractFDs;
 
 
-function generateClosures(cfg: DifficultyConfig, ProblemState: ProblemState) {
+function generateClosures(_cfg: DifficultyConfig, ProblemState: ProblemState) {
     console.log("ProblemState", ProblemState)
     for (const k of ProblemState.candidateKeys) {
         generateGraph(new Set(k), new Set(ProblemState.attributes))

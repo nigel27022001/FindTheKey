@@ -13,7 +13,7 @@ interface FDPanelProps {
 }
 
 export const FDPanel: FC<FDPanelProps> = ({ fds, highlightedFDs }) => (
-  <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 mb-3">
+  <div className="bg-white border border-gray-200 rounded-xl p-6 mb-3 shadow-sm">
     <SectionLabel>Functional dependencies</SectionLabel>
     {fds.map((fd, i) => (
       <FDRow key={i} fd={fd} highlighted={highlightedFDs[i] ?? false} />
