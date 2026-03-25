@@ -51,11 +51,13 @@ export interface GameState {
   hintsLeft:  number;
   feedback:   FeedbackState | null;
   allSolved:  boolean;
+  problemSolved: boolean;
   newKey:     string[] | null;
   toast:      ToastState | null;
   gameOver:   boolean;
   // Actions
   loadProblem:     (diff?: Difficulty) => void;
+  nextProblem:     ()                  => void;
   changeDifficulty:(diff: Difficulty)  => void;
   toggleAttr:      (attr: string)      => void;
   clearSelection:  ()                  => void;
@@ -88,6 +90,7 @@ export function useGameState(): GameState {
   const [hintsLeft,  setHintsLeft]  = useState(3);
   const [feedback,   setFeedback]   = useState<FeedbackState | null>(null);
   const [allSolved,  setAllSolved]  = useState(false);
+  const [problemSolved, setProblemSolved] = useState(false);
   const [newKey,     setNewKey]     = useState<string[] | null>(null);
   const [toast,      setToast]      = useState<ToastState | null>(null);
   const [gameOver,   setGameOver]   = useState(false);
@@ -110,6 +113,7 @@ export function useGameState(): GameState {
     setHintsLeft(HINT_COUNTS[diff]);
     setFeedback(null);
     setAllSolved(false);
+    setProblemSolved(false);
     setNewKey(null);
     setGameOver(false);
   }, [difficulty]);
@@ -117,6 +121,11 @@ export function useGameState(): GameState {
   function changeDifficulty(diff: Difficulty): void {
     setDifficulty(diff);
     loadProblem(diff);
+  }
+  
+  function nextProblem(): void {
+    setRound(r => r + 1);
+    loadProblem(difficulty);
   }
 
   function toggleAttr(attr: string): void {
@@ -158,25 +167,37 @@ export function useGameState(): GameState {
       setStreak(newStreak);
       setSolved(s => s + 1);
       setTotal(t  => t + 1);
+      setProblemSolved(true);
 
       if (newStreak === 3) showToast("Streak ×3", "Three correct in a row!");
       if (newStreak === 5) showToast("Streak ×5", "Five correct in a row!");
 
       if (newFound.length >= candidateKeys.length) {
         setAllSolved(true);
-        setRound(r => r + 1);
         const bonus = candidateKeys.length > 1 ? candidateKeys.length * 10 : 0;
         if (bonus) setScore(s => s + bonus);
-        setFeedback({
-          type:  "correct",
-          title: `All ${candidateKeys.length} key${candidateKeys.length > 1 ? "s" : ""} found! +${pts + bonus} pts`,
-          keys:  candidateKeys,
-        });
+        
+        if (candidateKeys.length === 1) {
+          setFeedback({
+            type:  "correct",
+            title: `Correct! +${pts} pts`,
+            body:  `Awesome! You found the candidate key.`,
+            keys:  candidateKeys,
+          });
+        } else {
+          setFeedback({
+            type:  "correct",
+            title: `Perfect Clear! +${pts + bonus} pts`,
+            body: `You found all ${candidateKeys.length} candidate keys!`,
+            keys:  candidateKeys,
+          });
+        }
       } else {
+        const remaining = candidateKeys.length - newFound.length;
         setFeedback({
           type:  "correct",
           title: `Correct! +${pts} pts`,
-          body:  `{${sel.join(", ")}} is a candidate key. Found ${newFound.length} of ${candidateKeys.length}.`,
+          body:  `{${sel.join(", ")}} is a candidate key. You solved the problem! Bonus Challenge: there ${remaining === 1 ? 'is 1 more key' : `are ${remaining} more keys`} to find for extra points!`,
         });
       }
     } else if (isSuperkey(sel, allAttrs, fds)) {
@@ -246,8 +267,8 @@ export function useGameState(): GameState {
   return {
     score, streak, round, solved, total,
     difficulty, problem, selected, foundKeys, hintsLeft,
-    feedback, allSolved, newKey, toast, gameOver,
-    loadProblem, changeDifficulty, toggleAttr, clearSelection, submitAnswer, showHint, dismissGameOver,
+    feedback, allSolved, problemSolved, newKey, toast, gameOver,
+    loadProblem, nextProblem, changeDifficulty, toggleAttr, clearSelection, submitAnswer, showHint, dismissGameOver,
     getLiveClosure, getHighlightedFDs,
   };
 }

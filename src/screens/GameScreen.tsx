@@ -26,8 +26,8 @@ export const GameScreen: FC<GameScreenProps> = ({ game, onGoToMenu }) => {
   const {
     score, streak, round, solved, total,
     difficulty, problem, selected, foundKeys, hintsLeft,
-    feedback, allSolved, newKey, toast, gameOver,
-    changeDifficulty, toggleAttr, clearSelection, submitAnswer, showHint, loadProblem,
+    feedback, allSolved, problemSolved, newKey, toast, gameOver,
+    changeDifficulty, toggleAttr, clearSelection, submitAnswer, showHint, nextProblem,
     getHighlightedFDs,
   } = game;
 
@@ -150,8 +150,9 @@ export const GameScreen: FC<GameScreenProps> = ({ game, onGoToMenu }) => {
                 onSubmit={submitAnswer}
                 onHint={showHint}
                 onClear={clearSelection}
-                onNext={() => loadProblem()}
+                onNext={nextProblem}
                 hintsLeft={hintsLeft}
+                problemSolved={problemSolved}
                 allSolved={allSolved}
               />
 
