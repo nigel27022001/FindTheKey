@@ -8,15 +8,15 @@ import type { FC } from "react";
 import type { GameState } from "../hooks/useGameState";
 import type { Difficulty } from "../lib/problemGenerator";
 import { DiffBadge, StatCard, Feedback, KeyBadge, Toast } from "../components/ui";
-import { SchemaPanel }    from "../components/SchemaPanel";
-import { FDPanel }        from "../components/FDPanel";
-import { ActionBar }      from "../components/ActionBar";
+import { SchemaPanel } from "../components/SchemaPanel";
+import { FDPanel } from "../components/FDPanel";
+import { ActionBar } from "../components/ActionBar";
 import { FoundKeysPanel } from "../components/FoundKeysPanel";
 import { TheoryPanel, TheoryButton } from "../components/TheoryPanel";
 import { DIFF_SELECTED_BTN } from "../lib/difficultyColors";
 
 interface GameScreenProps {
-  game:       GameState;
+  game: GameState;
   onGoToMenu: () => void;
 }
 
@@ -24,7 +24,7 @@ export const GameScreen: FC<GameScreenProps> = ({ game, onGoToMenu }) => {
   const [theoryOpen, setTheoryOpen] = useState(false);
 
   const {
-    score, streak, round, solved, total,
+    score, streak, round, solved, total, scoreTitle,
     difficulty, problem, selected, foundKeys, hintsLeft,
     feedback, allSolved, problemSolved, newKey, toast, gameOver,
     changeDifficulty, toggleAttr, clearSelection, submitAnswer, showHint, nextProblem,
@@ -32,6 +32,16 @@ export const GameScreen: FC<GameScreenProps> = ({ game, onGoToMenu }) => {
   } = game;
 
   const accuracy = total ? `${Math.round((solved / total) * 100)}%` : "—";
+
+  function getTitleClass(title: string) {
+    if (title === "Trainee") return "text-xl text-gray-400";
+    if (title === "SQL Apprentice") return "text-xl text-blue-500";
+    if (title === "SQL Master") return "text-xl text-emerald-500";
+    if (title === "Relational Wizard") return "text-lg text-purple-500";
+    if (title === "Normal Form Guru") return "text-lg text-orange-500";
+    if (title === "Database Deity") return "text-lg text-rose-600 drop-shadow-sm";
+    return "text-xl text-gray-800";
+  }
 
   return (
     <div className="min-h-screen bg-[#f0eeeb]">
@@ -60,9 +70,9 @@ export const GameScreen: FC<GameScreenProps> = ({ game, onGoToMenu }) => {
             )}
 
             <div className="grid grid-cols-2 gap-3 mb-8">
-              <StatCard label="Score"    value={score}    />
-              <StatCard label="Streak"   value={streak}   />
-              <StatCard label="Round"    value={round}    />
+              <StatCard label="Score" value={score} />
+              <StatCard label="Streak" value={streak} />
+              <StatCard label="Round" value={round} />
               <StatCard label="Accuracy" value={accuracy} />
             </div>
 
@@ -86,7 +96,7 @@ export const GameScreen: FC<GameScreenProps> = ({ game, onGoToMenu }) => {
 
           {/* Logo + nav */}
           <div>
-            <div className="text-lg font-bold text-gray-700 mb-2">🔑 Find the Key</div>
+            <div className="text-lg font-bold text-gray-700 mb-0.5">🔑 Find the Key</div>
             <DiffBadge diff={difficulty} />
             <button
               onClick={onGoToMenu}
@@ -100,10 +110,11 @@ export const GameScreen: FC<GameScreenProps> = ({ game, onGoToMenu }) => {
 
           {/* Stats — vertical */}
           <div className="flex flex-col gap-2">
-            <StatCard label="Score"    value={score}    />
-            <StatCard label="Streak"   value={streak}   />
-            <StatCard label="Round"    value={round}    />
+            <StatCard label="Score" value={score} />
+            <StatCard label="Streak" value={streak} />
+            <StatCard label="Round" value={round} />
             <StatCard label="Accuracy" value={accuracy} />
+            <StatCard label="Title" value={scoreTitle} valueClassName={getTitleClass(scoreTitle)} />
           </div>
 
           {/* Difficulty switcher — vertical */}

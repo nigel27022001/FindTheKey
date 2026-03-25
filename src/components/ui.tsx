@@ -19,12 +19,12 @@ export const DiffBadge: FC<{ diff: Difficulty }> = ({ diff }) => (
 
 // ── StatCard ──────────────────────────────────────────────────────────────────
 
-export const StatCard: FC<{ label: string; value: string | number }> = ({ label, value }) => (
+export const StatCard: FC<{ label: string; value: ReactNode; valueClassName?: string }> = ({ label, value, valueClassName }) => (
   <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-center w-full shadow-sm">
     <div className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-1">
       {label}
     </div>
-    <div className="text-3xl font-extrabold text-gray-800">{value}</div>
+    <div className={`font-extrabold ${valueClassName || 'text-3xl text-gray-800'}`}>{value}</div>
   </div>
 );
 

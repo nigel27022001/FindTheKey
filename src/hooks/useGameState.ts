@@ -52,6 +52,7 @@ export interface GameState {
   feedback:   FeedbackState | null;
   allSolved:  boolean;
   problemSolved: boolean;
+  scoreTitle: string;
   newKey:     string[] | null;
   toast:      ToastState | null;
   gameOver:   boolean;
@@ -244,6 +245,15 @@ export function useGameState(): GameState {
     }
   }
 
+  function getScoreTitle(pts: number): string {
+    if (pts < 100) return "Trainee";
+    if (pts < 200) return "SQL Apprentice";
+    if (pts < 300) return "SQL Master";
+    if (pts < 400) return "Relational Wizard";
+    if (pts < 500) return "Normal Form Guru";
+    return "Database Deity";
+  }
+
   function getLiveClosure(): LiveClosure {
     if (!problem || !selected.length) return { closure: [], isSK: false, isCK: false };
     return {
@@ -264,8 +274,10 @@ export function useGameState(): GameState {
     setGameOver(false);
   }
 
+  const scoreTitle = getScoreTitle(score);
+
   return {
-    score, streak, round, solved, total,
+    score, streak, round, solved, total, scoreTitle,
     difficulty, problem, selected, foundKeys, hintsLeft,
     feedback, allSolved, problemSolved, newKey, toast, gameOver,
     loadProblem, nextProblem, changeDifficulty, toggleAttr, clearSelection, submitAnswer, showHint, dismissGameOver,
