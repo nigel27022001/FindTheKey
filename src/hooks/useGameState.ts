@@ -106,6 +106,7 @@ export function useGameState(): GameState {
   const [gameOver,   setGameOver]   = useState(false);
   const [closureUses, setClosureUses] = useState(0);
   const [activeClosureSight, setActiveClosureSight] = useState(false);
+  const [wrongAttempts, setWrongAttempts] = useState(0);
   
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -144,6 +145,7 @@ export function useGameState(): GameState {
     setNewKey(null);
     setGameOver(false);
     setActiveClosureSight(false);
+    setWrongAttempts(0);
   }, [difficulty]);
 
   function changeDifficulty(diff: Difficulty): void {
@@ -231,22 +233,70 @@ export function useGameState(): GameState {
     } else if (isSuperkey(sel, allAttrs, fds)) {
       setStreak(0);
       setTotal(t => t + 1);
-      setFeedback({
-        type:  "wrong",
-        title: "Superkey — not minimal",
-        body:  `{${sel.join(", ")}} determines all attributes, but a proper subset is also a superkey. Remove an attribute.`,
-      });
-      setGameOver(true);
+      
+      if (gameMode === "practice") {
+        const newWrongAttempts = wrongAttempts + 1;
+        setWrongAttempts(newWrongAttempts);
+
+        if (newWrongAttempts >= 3) {
+          setProblemSolved(true);
+          setAllSolved(true);
+          setFoundKeys(problem.candidateKeys);
+          setFeedback({
+            type:  "wrong",
+            title: "Superkey — not minimal",
+            body:  `{${sel.join(", ")}} determines all attributes, but a proper subset is also a superkey. Out of attempts. The true candidate keys are revealed.`,
+            keys: problem.candidateKeys,
+          });
+        } else {
+          setFeedback({
+            type:  "wrong",
+            title: `Superkey — not minimal (${newWrongAttempts}/3 wrong)`,
+            body:  `{${sel.join(", ")}} determines all attributes, but a proper subset is also a superkey. Remove an attribute. You have ${3 - newWrongAttempts} attempts left.`,
+          });
+        }
+      } else {
+        setFeedback({
+          type:  "wrong",
+          title: "Superkey — not minimal",
+          body:  `{${sel.join(", ")}} determines all attributes, but a proper subset is also a superkey. Remove an attribute.`,
+        });
+        setGameOver(true);
+      }
     } else {
       setStreak(0);
       setTotal(t => t + 1);
       const cl = [...computeClosure(sel, fds)].sort();
-      setFeedback({
-        type:  "wrong",
-        title: "Not a superkey",
-        body:  `{${sel.join(", ")}}⁺ = {${cl.join(", ")}} — does not cover all attributes.`,
-      });
-      setGameOver(true);
+      
+      if (gameMode === "practice") {
+        const newWrongAttempts = wrongAttempts + 1;
+        setWrongAttempts(newWrongAttempts);
+
+        if (newWrongAttempts >= 3) {
+          setProblemSolved(true);
+          setAllSolved(true);
+          setFoundKeys(problem.candidateKeys);
+          setFeedback({
+            type:  "wrong",
+            title: "Not a superkey",
+            body:  `{${sel.join(", ")}}⁺ = {${cl.join(", ")}} — does not cover all attributes. Out of attempts. The true candidate keys are revealed.`,
+            keys: problem.candidateKeys,
+          });
+        } else {
+          setFeedback({
+            type:  "wrong",
+            title: `Not a superkey (${newWrongAttempts}/3 wrong)`,
+            body:  `{${sel.join(", ")}}⁺ = {${cl.join(", ")}} — does not cover all attributes. You have ${3 - newWrongAttempts} attempts left.`,
+          });
+        }
+      } else {
+        setFeedback({
+          type:  "wrong",
+          title: "Not a superkey",
+          body:  `{${sel.join(", ")}}⁺ = {${cl.join(", ")}} — does not cover all attributes.`,
+        });
+        setGameOver(true);
+      }
     }
 
     setSelected([]);

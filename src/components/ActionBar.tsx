@@ -65,7 +65,7 @@ export const ActionBar: FC<ActionBarProps> = ({
           onClick={onNext}
           className="font-serif text-lg px-8 py-3 rounded-sm border-b-4 border-sky-700 font-bold bg-sky-600 text-slate-100 hover:bg-sky-500 hover:border-sky-600 active:translate-y-1 active:border-b-0 transition-all shadow-[0_0_15px_rgba(2,132,199,0.4)] ml-auto tracking-wider w-full mt-2"
         >
-          Ascend Spire ⚔️
+          Next Problem
         </button>
       )}
     </div>

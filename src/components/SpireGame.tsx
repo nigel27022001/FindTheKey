@@ -268,6 +268,25 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
     <div className="flex h-screen bg-gray-50 text-gray-900 font-mono">
       <Toast toast={game.toast} />
 
+      {/* Game Over Modal */}
+      {playerHealth <= 0 && (
+        <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-800 border-4 border-slate-600 rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl animate-fade-up">
+            <div className="text-3xl font-black text-rose-400 mb-2 font-serif tracking-widest uppercase mt-4">Game Over</div>
+            <div className="text-base text-slate-400 mb-8 font-serif italic">The anomalies proved too much. Retreat and try again.</div>
+
+            <button
+              onClick={onBack}
+              className="w-full font-serif text-xl font-bold py-4 px-6 rounded-xl
+                         bg-slate-700 text-white border-b-4 border-slate-900 shadow-sm
+                         hover:bg-slate-600 hover:border-b-2 hover:translate-y-[2px] active:border-b-0 active:translate-y-[4px] transition-all tracking-wider"
+            >
+              ↩ Return to Camp
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* MAP COLUMN */}
       <div className="w-1/3 p-4 border-r border-gray-300 overflow-y-auto flex flex-col relative" style={{ backgroundColor: "#fafaf9" }}>
         <div className="sticky top-0 z-20 py-3 pb-4 rounded-b-xl border-b border-gray-200 shadow-sm transition-all" style={{ backgroundColor: "#fafaf9" }}>
@@ -590,7 +609,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
                 
                 <div className="absolute top-0 right-0 bg-slate-900 border-b-2 border-l-2 border-slate-600 px-4 py-1 rounded-bl-xl z-20">
                   <span className={`text-xs font-bold uppercase tracking-widest ${DIFF_TEXT[game.difficulty]}`}>
-                    {game.difficulty} Difficulty
+                    {game.difficulty}
                   </span>
                 </div>
 
