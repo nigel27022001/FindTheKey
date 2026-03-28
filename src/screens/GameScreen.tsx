@@ -86,7 +86,7 @@ export const GameScreen: FC<GameScreenProps> = ({ game, onGoToMenu }) => {
 
           {/* Logo + nav */}
           <div>
-            <div className="text-lg font-bold text-gray-700 mb-2">🔑 Find the Key</div>
+            <div className="text-lg font-bold text-gray-700 mb-2">Practice</div>
             <DiffBadge diff={difficulty} />
             <button
               onClick={onGoToMenu}
@@ -139,6 +139,7 @@ export const GameScreen: FC<GameScreenProps> = ({ game, onGoToMenu }) => {
                 selected={selected}
                 allSolved={allSolved}
                 onToggleAttr={toggleAttr}
+                game={game}
               />
 
               <FDPanel
@@ -154,6 +155,7 @@ export const GameScreen: FC<GameScreenProps> = ({ game, onGoToMenu }) => {
                 hintsLeft={hintsLeft}
                 problemSolved={problemSolved}
                 allSolved={allSolved}
+                gameMode={game.gameMode}
               />
 
               {feedback && (

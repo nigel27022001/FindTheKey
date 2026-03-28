@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback, useRef } from "react";
-import { generateProblem, HINT_COUNTS } from "../lib/problemGenerator";
+import { generateProblem } from "../lib/problemGenerator";
 import type { Problem, Difficulty } from "../lib/problemGenerator";
 import {
   computeClosure,
@@ -36,7 +36,11 @@ export interface LiveClosure {
   isCK:    boolean;
 }
 
+export type GameMode = "practice" | "spire";
+
 export interface GameState {
+  gameMode: GameMode;
+  setGameMode: (m: GameMode) => void;
   // Session stats
   score:      number;
   streak:     number;
@@ -55,6 +59,10 @@ export interface GameState {
   newKey:     string[] | null;
   toast:      ToastState | null;
   gameOver:   boolean;
+  closureUses: number;
+  activeClosureSight: boolean;
+  useClosurePotion: () => void;
+  consumeClosureUse: () => void;
   // Actions
   loadProblem:     (diff?: Difficulty) => void;
   nextProblem:     ()                  => void;
@@ -63,6 +71,7 @@ export interface GameState {
   clearSelection:  ()                  => void;
   submitAnswer:    ()                  => void;
   showHint:        ()                  => void;
+  earnHint:        ()                  => void;
   dismissGameOver: ()                  => void;
   // Derived
   getLiveClosure:    () => LiveClosure;
@@ -78,6 +87,7 @@ const POINTS: Record<Difficulty, number> = {
 // ── Hook ──────────────────────────────────────────────────────────────────────
 
 export function useGameState(): GameState {
+  const [gameMode, setGameMode] = useState<GameMode>("practice");
   const [score,      setScore]      = useState(0);
   const [streak,     setStreak]     = useState(0);
   const [round,      setRound]      = useState(1);
@@ -87,13 +97,16 @@ export function useGameState(): GameState {
   const [problem,    setProblem]    = useState<Problem | null>(null);
   const [selected,   setSelected]   = useState<string[]>([]);
   const [foundKeys,  setFoundKeys]  = useState<string[][]>([]);
-  const [hintsLeft,  setHintsLeft]  = useState(3);
+  const [hintsLeft,  setHintsLeft]  = useState(1);
   const [feedback,   setFeedback]   = useState<FeedbackState | null>(null);
   const [allSolved,  setAllSolved]  = useState(false);
   const [problemSolved, setProblemSolved] = useState(false);
   const [newKey,     setNewKey]     = useState<string[] | null>(null);
   const [toast,      setToast]      = useState<ToastState | null>(null);
   const [gameOver,   setGameOver]   = useState(false);
+  const [closureUses, setClosureUses] = useState(0);
+  const [activeClosureSight, setActiveClosureSight] = useState(false);
+  
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function showToast(title: string, msg: string): void {
@@ -102,20 +115,35 @@ export function useGameState(): GameState {
     toastTimer.current = setTimeout(() => setToast(null), 3200);
   }
 
+  function earnHint(): void {
+    setHintsLeft(h => h + 1);
+  }
+
   function getPoints(currentStreak: number): number {
     return POINTS[difficulty] + (currentStreak > 1 ? currentStreak * 2 : 0);
+  }
+
+  function useClosurePotion(): void {
+    setClosureUses(c => c + 1);
+  }
+
+  function consumeClosureUse(): void {
+    if (closureUses > 0) {
+      setClosureUses(c => Math.max(0, c - 1));
+      setActiveClosureSight(true);
+    }
   }
 
   const loadProblem = useCallback((diff: Difficulty = difficulty): void => {
     setProblem(generateProblem(diff));
     setSelected([]);
     setFoundKeys([]);
-    setHintsLeft(HINT_COUNTS[diff]);
     setFeedback(null);
     setAllSolved(false);
     setProblemSolved(false);
     setNewKey(null);
     setGameOver(false);
+    setActiveClosureSight(false);
   }, [difficulty]);
 
   function changeDifficulty(diff: Difficulty): void {
@@ -226,7 +254,7 @@ export function useGameState(): GameState {
 
   function showHint(): void {
     if (!problem) return;
-    if (hintsLeft <= 0) {
+    if (gameMode !== "practice" && hintsLeft <= 0) {
       setFeedback({ type: "hint", title: "No hints remaining", body: "Work through the closures step by step." });
       return;
     }
@@ -235,7 +263,9 @@ export function useGameState(): GameState {
       setFeedback({ type: "info", title: "All keys found!", body: "Nothing left to hint at." });
       return;
     }
-    setHintsLeft(h => h - 1);
+    if (gameMode !== "practice") {
+      setHintsLeft(h => h - 1);
+    }
     if (unfound.length === 1) {
       setFeedback({ type: "hint", title: "Hint", body: `One candidate key contains just the attribute "${unfound[0]}".` });
     } else {
@@ -265,10 +295,12 @@ export function useGameState(): GameState {
   }
 
   return {
+    gameMode, setGameMode,
     score, streak, round, solved, total,
     difficulty, problem, selected, foundKeys, hintsLeft,
     feedback, allSolved, problemSolved, newKey, toast, gameOver,
-    loadProblem, nextProblem, changeDifficulty, toggleAttr, clearSelection, submitAnswer, showHint, dismissGameOver,
+    closureUses, activeClosureSight, useClosurePotion, consumeClosureUse,
+    loadProblem, nextProblem, changeDifficulty, toggleAttr, clearSelection, submitAnswer, showHint, earnHint, dismissGameOver,
     getLiveClosure, getHighlightedFDs,
   };
 }
