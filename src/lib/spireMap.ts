@@ -29,21 +29,21 @@ export interface EnemyConfig {
  */
 export function generateSpireMap(layers: number = 10, width: number = 5): SpireNode[][] {
   const map: SpireNode[][] = [];
-  
+
   // Layer 0 is starting layer (Minions)
   // Layer {layers-1} is Final Boss
-  
+
   for (let l = 0; l < layers; l++) {
     const layerNodes: SpireNode[] = [];
-    const numNodes = l === layers - 1 ? 1 : Math.max(1, Math.floor(Math.random() * width) + 2);
-    
+    const numNodes = l === layers - 1 ? 1 : Math.min(width, Math.floor(Math.random() * width) + 2);
+
     for (let i = 0; i < numNodes; i++) {
       let type: NodeType = "minion";
-      
+
       if (l === layers - 1) {
         type = "boss";
       } else if (l === layers - 2) {
-        type = "rest"; 
+        type = "rest";
       } else if (l > 0) {
         const rand = Math.random();
         if (rand < 0.2) type = "elite";
@@ -52,7 +52,7 @@ export function generateSpireMap(layers: number = 10, width: number = 5): SpireN
         else if (rand < 0.6) type = "treasure";
         else type = "minion";
       }
-      
+
       layerNodes.push({
         id: `${l}-${i}`,
         layer: l,
@@ -69,27 +69,33 @@ export function generateSpireMap(layers: number = 10, width: number = 5): SpireN
   for (let l = 0; l < layers - 1; l++) {
     const currentLayer = map[l];
     const nextLayer = map[l + 1];
-    
-    // Ensure every node connects to at least 1 next node
+
+    // Ensure every node connects to at least 1 next node (straight or adjacent)
     currentLayer.forEach((node, idx) => {
-      // ratio to map current layer indices to next layer
       const targetIdx = Math.floor((idx / currentLayer.length) * nextLayer.length);
       node.nextIds.push(nextLayer[targetIdx].id);
-      
-      // possible cross-path
-      if (Math.random() < 0.3 && targetIdx + 1 < nextLayer.length) {
+
+      // branch to immediate right
+      if (Math.random() < 0.15 && targetIdx + 1 < nextLayer.length) {
         node.nextIds.push(nextLayer[targetIdx + 1].id);
+      }
+
+      // branch to immediate left
+      if (Math.random() < 0.15 && targetIdx - 1 >= 0) {
+        if (!node.nextIds.includes(nextLayer[targetIdx - 1].id)) {
+          node.nextIds.push(nextLayer[targetIdx - 1].id);
+        }
       }
     });
 
-    // Ensure every next node is reachable
-    nextLayer.forEach(nextNode => {
+    // Ensure every next node is reachable by connecting the structurally closest parent
+    nextLayer.forEach((nextNode, nextIdx) => {
       const isReachable = currentLayer.some(n => n.nextIds.includes(nextNode.id));
       if (!isReachable) {
-        // connect random current node to it
-        const randIdx = Math.floor(Math.random() * currentLayer.length);
-        if (!currentLayer[randIdx].nextIds.includes(nextNode.id)) {
-            currentLayer[randIdx].nextIds.push(nextNode.id);
+        // connect the structurally closest current node to it instead of a fully random one
+        const closestIdx = Math.floor((nextIdx / nextLayer.length) * currentLayer.length);
+        if (!currentLayer[closestIdx].nextIds.includes(nextNode.id)) {
+          currentLayer[closestIdx].nextIds.push(nextNode.id);
         }
       }
     });
@@ -97,7 +103,7 @@ export function generateSpireMap(layers: number = 10, width: number = 5): SpireN
 
   // Start nodes are available
   map[0].forEach(n => n.status = "available");
-  
+
   return map;
 }
 
@@ -138,7 +144,7 @@ export function generateEnemy(type: "minion" | "elite" | "boss"): EnemyConfig {
     const numProblems = Math.random() < 0.5 ? 2 : 3;
     const problems = [];
     let hp = 0;
-    for(let i=0; i<numProblems; i++) {
+    for (let i = 0; i < numProblems; i++) {
       const diff = i === 0 ? "medium" : "hard";
       const dmg = diff === "hard" ? 20 : 15;
       problems.push({ difficulty: diff as any, damage: dmg });
@@ -151,11 +157,11 @@ export function generateEnemy(type: "minion" | "elite" | "boss"): EnemyConfig {
     const numProblems = Math.random() < 0.5 ? 4 : 5;
     const problems = [];
     let hp = 0;
-    for(let i=0; i<numProblems; i++) {
-       const diff = i < 2 ? "hard" : "expert";
-       const dmg = diff === "expert" ? 30 : 20;
-       problems.push({ difficulty: diff as any, damage: dmg });
-       hp += dmg;
+    for (let i = 0; i < numProblems; i++) {
+      const diff = i < 2 ? "hard" : "expert";
+      const dmg = diff === "expert" ? 30 : 20;
+      problems.push({ difficulty: diff as any, damage: dmg });
+      hp += dmg;
     }
     return { type, ...template, totalHealth: hp, problems };
   }

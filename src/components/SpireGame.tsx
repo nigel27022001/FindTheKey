@@ -27,7 +27,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
 
   const [playerHealth, setPlayerHealth] = useState(100);
   const [gold, setGold] = useState(0);
-  const [floatingDamage, setFloatingDamage] = useState<{id: number, val: number, isPlayer: boolean}[]>([]);
+  const [floatingDamage, setFloatingDamage] = useState<{ id: number, val: number, isPlayer: boolean }[]>([]);
 
   const [battleLog, setBattleLog] = useState<string[]>([]);
   const logRef = useRef<HTMLDivElement>(null);
@@ -54,7 +54,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
   const initialized = useRef(false);
   useEffect(() => {
     if (!initialized.current) {
-      setMap(generateSpireMap(15, 6));
+      setMap(generateSpireMap(15, 5));
       appendLog("Run started. Map generated.");
       initialized.current = true;
     }
@@ -99,7 +99,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
         setGold(g => g + 50);
         game.earnHint();
         appendLog(`Player collected Treasure! (+50 Gold, +1 Hint)`);
-        
+
         // Auto-complete the treasure room
         setMap(prev =>
           prev.map(layer =>
@@ -142,7 +142,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
       } else if (node.type === "rest") {
         setPlayerHealth(hp => Math.min(100, hp + 30));
         appendLog(`Rested at the Checkpoint. (+30 HP)`);
-        
+
         // Auto-complete the rest room
         setMap(prev =>
           prev.map(layer =>
@@ -291,7 +291,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
       <div className="w-1/3 p-4 border-r border-gray-300 overflow-y-auto flex flex-col relative" style={{ backgroundColor: "#fafaf9" }}>
         <div className="sticky top-0 z-20 py-3 pb-4 rounded-b-xl border-b border-gray-200 shadow-sm transition-all" style={{ backgroundColor: "#fafaf9" }}>
           <h2 className="text-xl font-extrabold text-center text-slate-800 mb-2 flex items-center justify-center gap-2">
-            <Scroll size={22} className="text-indigo-600" /> 
+            <Scroll size={22} className="text-indigo-600" />
             Spire of FDs
           </h2>
           <div className="text-xs text-slate-600 text-center px-2 space-y-2 leading-relaxed mb-3">
@@ -300,14 +300,14 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
           </div>
 
           {/* MAP LEGEND / LORE */}
-          <div className="mx-2 mt-2 pt-3 border-t border-gray-200/60 grid grid-cols-2 gap-x-2 gap-y-2 text-[10px] text-slate-600 font-medium">
-            <div className="flex items-center gap-1.5"><Bug size={14} className="text-gray-600"/> <span>Schema Bugs (Minion)</span></div>
-            <div className="flex items-center gap-1.5"><Ghost size={14} className="text-red-500"/> <span className="text-red-700">Anomalies (Elite)</span></div>
-            <div className="flex items-center gap-1.5"><Crown size={14} className="text-purple-600"/> <span className="text-purple-700 font-bold">Rogue DB (Boss)</span></div>
-            <div className="flex items-center gap-1.5"><Store size={14} className="text-amber-600"/> <span>Merchant (Shop)</span></div>
-            <div className="flex items-center gap-1.5"><Gem size={14} className="text-blue-500"/> <span>Data Cache (Treasure)</span></div>
-            <div className="flex items-center gap-1.5"><CircleHelp size={14} className="text-blue-400"/> <span>Unknown Query</span></div>
-            <div className="flex items-center gap-1.5"><Tent size={14} className="text-green-600"/> <span>Checkpoint (Rest)</span></div>
+          <div className="mx-2 mt-2 pt-3 border-t border-gray-200/60 grid grid-cols-2 gap-x-2 gap-y-2 text-[15px] text-slate-600 font-medium">
+            <div className="flex items-center gap-1.5"><Bug size={14} className="text-gray-600" /> <span>Schema Bugs (Minion)</span></div>
+            <div className="flex items-center gap-1.5"><Ghost size={14} className="text-red-500" /> <span className="text-red-700">Anomalies (Elite)</span></div>
+            <div className="flex items-center gap-1.5"><Crown size={14} className="text-purple-600" /> <span className="text-purple-700 font-bold">Rogue DB (Boss)</span></div>
+            <div className="flex items-center gap-1.5"><Store size={14} className="text-amber-600" /> <span>Merchant (Shop)</span></div>
+            <div className="flex items-center gap-1.5"><Gem size={14} className="text-blue-500" /> <span>Data Cache (Treasure)</span></div>
+            <div className="flex items-center gap-1.5"><CircleHelp size={14} className="text-blue-400" /> <span>Unknown Query</span></div>
+            <div className="flex items-center gap-1.5"><Tent size={14} className="text-green-600" /> <span>Checkpoint (Rest)</span></div>
           </div>
         </div>
 
@@ -366,11 +366,11 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
 
               const isAvailable = node.status === "available" || node.status === "current";
               const isCompleted = node.status === "completed";
-              
-              const statusClasses = isAvailable 
-                ? `${theme.border} ${theme.bg} shadow-lg ${theme.shadow} ${node.status === "current" ? "ring-4 ring-green-400 scale-110" : ""}` 
-                : isCompleted 
-                  ? `${theme.border} bg-gray-200 opacity-50` 
+
+              const statusClasses = isAvailable
+                ? `${theme.border} ${theme.bg} shadow-lg ${theme.shadow} ${node.status === "current" ? "ring-4 ring-green-400 scale-110" : ""}`
+                : isCompleted
+                  ? `${theme.border} bg-gray-200 opacity-50`
                   : `border-gray-300 bg-gray-50 opacity-50 grayscale`;
 
               return (
@@ -496,7 +496,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
                     </div>
                   </button>
                 </div>
-                
+
                 <button
                   onClick={() => {
                     handleFightComplete();
@@ -512,148 +512,147 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
           {currentNode && activeEnemy && (
             <div className="max-w-3xl w-full mx-auto flex flex-col gap-6">
 
-            {showVictory && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-[4px] px-4">
-                <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 p-8 w-full max-w-sm text-center animate-fade-up relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-br from-green-100 to-green-50 z-0" />
-                  <div className="relative z-10 flex flex-col items-center justify-center">
-                    <div className="bg-white w-24 h-24 rounded-full flex items-center justify-center mb-4 shadow-lg border-4 border-green-50">
-                      <span className="text-6xl drop-shadow-md pb-1">🏆</span>
+              {showVictory && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-[4px] px-4">
+                  <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 p-8 w-full max-w-sm text-center animate-fade-up relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-br from-green-100 to-green-50 z-0" />
+                    <div className="relative z-10 flex flex-col items-center justify-center">
+                      <div className="bg-white w-24 h-24 rounded-full flex items-center justify-center mb-4 shadow-lg border-4 border-green-50">
+                        <span className="text-6xl drop-shadow-md pb-1">🏆</span>
+                      </div>
+                      <h3 className="text-3xl font-black text-slate-800 mb-2">Victory!</h3>
+                      <div className="bg-emerald-50 text-emerald-700 px-4 py-1.5 rounded-full text-sm font-bold mb-4 shadow-sm">
+                        +{activeEnemy.type === "boss" ? 100 : activeEnemy.type === "elite" ? 40 : 15} Gold
+                      </div>
+                      <p className="text-sm font-medium text-slate-500 animate-pulse">Returning to the map...</p>
                     </div>
-                    <h3 className="text-3xl font-black text-slate-800 mb-2">Victory!</h3>
-                    <div className="bg-emerald-50 text-emerald-700 px-4 py-1.5 rounded-full text-sm font-bold mb-4 shadow-sm">
-                      +{activeEnemy.type === "boss" ? 100 : activeEnemy.type === "elite" ? 40 : 15} Gold
+                  </div>
+                </div>
+              )}
+
+              {/* BATTLE ARENA */}
+              <div className="flex justify-between items-end relative">
+
+                {/* PLAYER */}
+                <div className="flex flex-col items-center gap-2 relative">
+                  {floatingDamage.filter(d => d.isPlayer).map(d => (
+                    <div key={d.id} className="absolute -top-12 text-red-500 font-bold text-3xl animate-float-dmg pointer-events-none">
+                      -{d.val}
                     </div>
-                    <p className="text-sm font-medium text-slate-500 animate-pulse">Returning to the map...</p>
+                  ))}
+
+                  <div className="relative flex items-center justify-center text-slate-800 bg-slate-100 p-4 rounded-full border-4 border-slate-300 shadow-sm overflow-hidden">
+                    <UserKey size={64} strokeWidth={2.5} className="z-10 text-slate-700" />
+                  </div>
+                  <div className="text-gray-800">Player</div>
+                  <div className="w-48 bg-gray-300 h-4 rounded-full overflow-hidden">
+                    <div
+                      className="bg-green-500 h-4 transition-all duration-500 ease-out"
+                      style={{ width: `${playerHealth}%` }}
+                    />
+                  </div>
+
+                  <div className="text-green-700 font-bold text-sm">
+                    {playerHealth}/100 HP
                   </div>
                 </div>
-              </div>
-            )}
 
-            {/* BATTLE ARENA */}
-            <div className="flex justify-between items-end relative">
+                {/* ENEMY */}
+                <div className="flex flex-col items-center gap-2 relative">
+                  {floatingDamage.filter(d => !d.isPlayer).map(d => (
+                    <div key={d.id} className="absolute -top-12 text-red-500 font-bold text-3xl animate-float-dmg pointer-events-none">
+                      -{d.val}
+                    </div>
+                  ))}
 
-              {/* PLAYER */}
-              <div className="flex flex-col items-center gap-2 relative">
-                {floatingDamage.filter(d => d.isPlayer).map(d => (
-                  <div key={d.id} className="absolute -top-12 text-red-500 font-bold text-3xl animate-float-dmg pointer-events-none">
-                    -{d.val}
+                  <div className="text-gray-800 p-4 rounded-full" style={{ backgroundColor: `${activeEnemy.spriteFill}33` }}>
+                    {activeEnemy.spriteId === "rat" && <Rat size={64} fill={activeEnemy.spriteFill} color={activeEnemy.spriteColor} />}
+                    {activeEnemy.spriteId === "droplet" && <Droplet size={64} fill={activeEnemy.spriteFill} color={activeEnemy.spriteColor} />}
+                    {activeEnemy.spriteId === "bug" && <Bug size={64} fill={activeEnemy.spriteFill} color={activeEnemy.spriteColor} />}
+                    {activeEnemy.spriteId === "skull" && <Skull size={64} fill={activeEnemy.spriteFill} color={activeEnemy.spriteColor} />}
+                    {activeEnemy.spriteId === "ghost" && <Ghost size={64} fill={activeEnemy.spriteFill} color={activeEnemy.spriteColor} />}
+                    {activeEnemy.spriteId === "flame" && <Flame size={64} fill={activeEnemy.spriteFill} color={activeEnemy.spriteColor} />}
+                    {activeEnemy.spriteId === "sword" && <Sword size={64} fill={activeEnemy.spriteFill} color={activeEnemy.spriteColor} />}
+                    {activeEnemy.spriteId === "crown" && <Crown size={64} fill={activeEnemy.spriteFill} color={activeEnemy.spriteColor} />}
+                    {activeEnemy.spriteId === "shield" && <Shield size={64} fill={activeEnemy.spriteFill} color={activeEnemy.spriteColor} />}
                   </div>
-                ))}
-                
-                <div className="relative flex items-center justify-center text-slate-800 bg-slate-100 p-4 rounded-full border-4 border-slate-300 shadow-sm overflow-hidden">
-                  <UserKey size={64} strokeWidth={2.5} className="z-10 text-slate-700" />
-                </div>
-
-                <div className="w-48 bg-gray-300 h-4 rounded-full overflow-hidden">
-                  <div
-                    className="bg-green-500 h-4 transition-all duration-500 ease-out"
-                    style={{ width: `${playerHealth}%` }}
-                  />
-                </div>
-
-                <div className="text-green-700 font-bold text-sm">
-                  {playerHealth}/100 HP
-                </div>
-              </div>
-
-              {/* ENEMY */}
-              <div className="flex flex-col items-center gap-2 relative">
-                {floatingDamage.filter(d => !d.isPlayer).map(d => (
-                  <div key={d.id} className="absolute -top-12 text-red-500 font-bold text-3xl animate-float-dmg pointer-events-none">
-                    -{d.val}
-                  </div>
-                ))}
-
-                <div className="text-gray-800 p-4 rounded-full" style={{ backgroundColor: `${activeEnemy.spriteFill}33` }}>
-                  {activeEnemy.spriteId === "rat" && <Rat size={64} fill={activeEnemy.spriteFill} color={activeEnemy.spriteColor} />}
-                  {activeEnemy.spriteId === "droplet" && <Droplet size={64} fill={activeEnemy.spriteFill} color={activeEnemy.spriteColor} />}
-                  {activeEnemy.spriteId === "bug" && <Bug size={64} fill={activeEnemy.spriteFill} color={activeEnemy.spriteColor} />}
-                  {activeEnemy.spriteId === "skull" && <Skull size={64} fill={activeEnemy.spriteFill} color={activeEnemy.spriteColor} />}
-                  {activeEnemy.spriteId === "ghost" && <Ghost size={64} fill={activeEnemy.spriteFill} color={activeEnemy.spriteColor} />}
-                  {activeEnemy.spriteId === "flame" && <Flame size={64} fill={activeEnemy.spriteFill} color={activeEnemy.spriteColor} />}
-                  {activeEnemy.spriteId === "sword" && <Sword size={64} fill={activeEnemy.spriteFill} color={activeEnemy.spriteColor} />}
-                  {activeEnemy.spriteId === "crown" && <Crown size={64} fill={activeEnemy.spriteFill} color={activeEnemy.spriteColor} />}
-                  {activeEnemy.spriteId === "shield" && <Shield size={64} fill={activeEnemy.spriteFill} color={activeEnemy.spriteColor} />}
-                </div>
-
-                <div className="w-48 bg-gray-300 h-4 rounded-full overflow-hidden">
-                  <div
-                    className="bg-red-500 h-4 transition-all duration-500 ease-out"
-                    style={{
-                      width: `${
-                        (activeEnemy.totalHealth /
+                  <div className="text-gray-800"> {activeEnemy.name}</div>
+                  <div className="w-48 bg-gray-300 h-4 rounded-full overflow-hidden">
+                    <div
+                      className="bg-red-500 h-4 transition-all duration-500 ease-out"
+                      style={{
+                        width: `${(activeEnemy.totalHealth /
                           (activeEnemy as any).maxHealth) *
-                        100
-                      }%`,
-                    }}
-                  />
-                </div>
-
-                <div className="text-red-700 text-sm">
-                  {activeEnemy.totalHealth}/
-                  {(activeEnemy as any).maxHealth} HP
-                </div>
-
-                <div className="text-red-600 font-bold animate-pulse">
-                  ⚔️ Intent: {enemyIntentDamage}
-                </div>
-              </div>
-            </div>
-
-            {/* PROBLEM UI */}
-            {game.problem && (
-              <div className="bg-slate-800 border-4 border-slate-700 shadow-2xl rounded-2xl p-6 relative overflow-hidden mt-4">
-                {/* Decorative old-school border line */}
-                <div className="absolute inset-2 border border-slate-600/50 pointer-events-none rounded-xl" />
-                
-                <div className="absolute top-0 right-0 bg-slate-900 border-b-2 border-l-2 border-slate-600 px-4 py-1 rounded-bl-xl z-20">
-                  <span className={`text-xs font-bold uppercase tracking-widest ${DIFF_TEXT[game.difficulty]}`}>
-                    {game.difficulty}
-                  </span>
-                </div>
-
-                <SchemaPanel
-                  problem={game.problem}
-                  selected={game.selected}
-                  allSolved={game.allSolved}
-                  onToggleAttr={game.toggleAttr}
-                  game={game}
-                />
-
-                <FDPanel
-                  fds={game.problem.fds}
-                  highlightedFDs={game.getHighlightedFDs()}
-                />
-
-                <FoundKeysPanel
-                  foundKeys={game.foundKeys}
-                  totalKeys={game.problem.candidateKeys.length}
-                  newKey={game.newKey}
-                />
-
-                <ActionBar
-                  onSubmit={game.submitAnswer}
-                  onHint={game.showHint}
-                  onClear={game.clearSelection}
-                  onNext={undefined}
-                  hintsLeft={game.hintsLeft}
-                  problemSolved={game.problemSolved}
-                  allSolved={game.allSolved}
-                  gameMode={game.gameMode}
-                />
-
-                {game.feedback && (
-                  <div className="mt-4">
-                    <Feedback type={game.feedback.type} title={game.feedback.title}>
-                      {game.feedback.body && <div>{game.feedback.body}</div>}
-                    </Feedback>
+                          100
+                          }%`,
+                      }}
+                    />
                   </div>
-                )}
+
+                  <div className="text-red-700 text-sm">
+                    {activeEnemy.totalHealth}/
+                    {(activeEnemy as any).maxHealth} HP
+                  </div>
+
+                  <div className="text-red-600 font-bold animate-pulse">
+                    ⚔️ Intent: {enemyIntentDamage}
+                  </div>
+                </div>
               </div>
-            )}
-          </div>
-        )}
+
+              {/* PROBLEM UI */}
+              {game.problem && (
+                <div className="bg-slate-800 border-4 border-slate-700 shadow-2xl rounded-2xl p-6 relative overflow-hidden mt-4">
+                  {/* Decorative old-school border line */}
+                  <div className="absolute inset-2 border border-slate-600/50 pointer-events-none rounded-xl" />
+
+                  <div className="absolute top-0 right-0 bg-slate-900 border-b-2 border-l-2 border-slate-600 px-4 py-1 rounded-bl-xl z-20">
+                    <span className={`text-xs font-bold uppercase tracking-widest ${DIFF_TEXT[game.difficulty]}`}>
+                      {game.difficulty}
+                    </span>
+                  </div>
+
+                  <SchemaPanel
+                    problem={game.problem}
+                    selected={game.selected}
+                    allSolved={game.allSolved}
+                    onToggleAttr={game.toggleAttr}
+                    game={game}
+                  />
+
+                  <FDPanel
+                    fds={game.problem.fds}
+                    highlightedFDs={game.getHighlightedFDs()}
+                  />
+
+                  <FoundKeysPanel
+                    foundKeys={game.foundKeys}
+                    totalKeys={game.problem.candidateKeys.length}
+                    newKey={game.newKey}
+                  />
+
+                  <ActionBar
+                    onSubmit={game.submitAnswer}
+                    onHint={game.showHint}
+                    onClear={game.clearSelection}
+                    onNext={undefined}
+                    hintsLeft={game.hintsLeft}
+                    problemSolved={game.problemSolved}
+                    allSolved={game.allSolved}
+                    gameMode={game.gameMode}
+                  />
+
+                  {game.feedback && (
+                    <div className="mt-4">
+                      <Feedback type={game.feedback.type} title={game.feedback.title}>
+                        {game.feedback.body && <div>{game.feedback.body}</div>}
+                      </Feedback>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
