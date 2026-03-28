@@ -115,30 +115,57 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
           )
         );
       } else if (node.type === "mystery") {
-        // Random mystery effect (Earn a hint or some gold)
         const rand = Math.random();
-        if (rand < 0.5) {
-          setGold(g => g + 25);
-          appendLog(`Mystery: Found a stranger's coin purse. (+25 Gold)`);
+        let shouldAutoComplete = false;
+
+        if (rand < 0.2) {
+          if (Math.random() < 0.5) {
+            game.earnHint();
+            appendLog(`Mystery: Found a strange liquid... it's a Hint Potion!`);
+          } else {
+            game.useClosurePotion();
+            appendLog(`Mystery: Found a strange liquid... it's a Closure Potion!`);
+          }
+          shouldAutoComplete = true;
+        } else if (rand < 0.4) {
+          setPlayerHealth(hp => Math.min(100, hp + 20));
+          appendLog(`Mystery: Drank from a revitalizing spring. (+20 HP)`);
+          shouldAutoComplete = true;
+        } else if (rand < 0.6) {
+          setPlayerHealth(hp => hp - 10);
+          appendLog(`Mystery: Fell into a spiked trap! (-10 HP)`);
+          shouldAutoComplete = true;
+        } else if (rand < 0.8) {
+          appendLog(`Mystery: It's an ambush!`);
+          const enemy = generateEnemy("minion");
+          const enemyWithMax = { ...enemy, maxHealth: enemy.totalHealth };
+          
+          setActiveEnemy(enemyWithMax);
+          setProblemIndex(0);
+          appendLog(`A ${enemyWithMax.name} appears! (${enemyWithMax.totalHealth} HP)`);
+          appendLog(`Enemy intent: ${enemyWithMax.problems[0]?.damage ?? 0} dmg`);
+          game.changeDifficulty(enemyWithMax.problems[0].difficulty);
         } else {
-          game.earnHint();
-          appendLog(`Mystery: Deciphered an ancient scroll. (+1 Hint)`);
+          appendLog(`Mystery: Stumbled upon a hidden Merchant's Tent!`);
+          setCurrentNode({ ...node, type: "shop" });
+          setActiveEnemy(null);
         }
 
-        // Auto-complete the mystery room
-        setMap(prev =>
-          prev.map(layer =>
-            layer.map(n => {
-              if (n.id === node.id)
-                return { ...n, status: "completed" };
+        if (shouldAutoComplete) {
+          setMap(prev =>
+            prev.map(layer =>
+              layer.map(n => {
+                if (n.id === node.id)
+                  return { ...n, status: "completed" };
 
-              if (n.layer === node.layer + 1 && node.nextIds.includes(n.id))
-                return { ...n, status: "available" };
+                if (n.layer === node.layer + 1 && node.nextIds.includes(n.id))
+                  return { ...n, status: "available" };
 
-              return n;
-            })
-          )
-        );
+                return n;
+              })
+            )
+          );
+        }
       } else if (node.type === "rest") {
         setPlayerHealth(hp => Math.min(100, hp + 30));
         appendLog(`Rested at the Checkpoint. (+30 HP)`);
