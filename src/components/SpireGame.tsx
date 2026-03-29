@@ -33,6 +33,10 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
   const [discardPrompt, setDiscardPrompt] = useState<{ type: "hint" | "closure" | "skip", index: number } | null>(null);
   const [pendingPotions, setPendingPotions] = useState<{id: string, type: "hint" | "closure" | "skip"}[]>([]);
 
+  const [playerShake, setPlayerShake] = useState(false);
+  const [enemyShake, setEnemyShake] = useState(false);
+  const [projectiles, setProjectiles] = useState<{ id: number, type: "rune" | "enemy", label: string, emoji: string }[]>([]);
+
   const [battleLog, setBattleLog] = useState<string[]>([]);
   const logRef = useRef<HTMLDivElement>(null);
 
@@ -54,6 +58,15 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
 
   const enemyIntentDamage =
     activeEnemy?.problems?.[problemIndex]?.damage ?? 0;
+
+  // Track last selected attrs so we can show them in rune projectile
+  // (game.selected is cleared before the problemSolved effect fires)
+  const lastSelectedRef = useRef<string[]>([]);
+  useEffect(() => {
+    if (game.selected.length > 0) {
+      lastSelectedRef.current = game.selected;
+    }
+  }, [game.selected]);
 
   const initialized = useRef(false);
   useEffect(() => {
@@ -283,17 +296,53 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
     }, 1000);
   };
 
+  const ENEMY_ATTACK_THEME: Record<string, { emoji: string, label: string }> = {
+    "Cave Rat":        { emoji: "🐀", label: "Bite" },
+    "Corrosive Slime": { emoji: "🧪", label: "Acid" },
+    "Giant Beetle":    { emoji: "🪲", label: "Sting" },
+    "Lost Skeleton":   { emoji: "🦴", label: "Bone" },
+    "Phantom":         { emoji: "👻", label: "Haunt" },
+    "Fire Elemental":  { emoji: "🔥", label: "Fire" },
+    "Mercenary":       { emoji: "⚔️", label: "Slash" },
+    "The Corrupted King": { emoji: "👑", label: "Decree" },
+    "Iron Golem":      { emoji: "🛡️", label: "Crush" },
+    "Ancient Lich":    { emoji: "💀", label: "Curse" },
+  };
+
+  const spawnProjectile = (type: "rune" | "enemy", label: string, emoji: string) => {
+    const id = Date.now() + Math.random();
+    setProjectiles(prev => [...prev, { id, type, label, emoji }]);
+    setTimeout(() => {
+      setProjectiles(prev => prev.filter(p => p.id !== id));
+    }, 700);
+  };
+
+  const triggerShake = (target: "player" | "enemy") => {
+    if (target === "player") {
+      setPlayerShake(true);
+      setTimeout(() => setPlayerShake(false), 450);
+    } else {
+      setEnemyShake(true);
+      setTimeout(() => setEnemyShake(false), 450);
+    }
+  };
+
   useEffect(() => {
     if (activeEnemy && game.problemSolved) {
       const prob = activeEnemy.problems[problemIndex];
       const newHp = activeEnemy.totalHealth - prob.damage;
 
-      setActiveEnemy({
-        ...activeEnemy,
-        totalHealth: Math.max(0, newHp),
-      });
+      // Rune projectile with selected attrs (use ref since selected is already cleared)
+      const runeLabel = lastSelectedRef.current.join(",");
+      spawnProjectile("rune", runeLabel, "✦");
 
-      spawnFloatingDamage(prob.damage, false);
+      // Delay damage to sync with projectile hitting
+      setTimeout(() => {
+        setActiveEnemy(prev => prev ? { ...prev, totalHealth: Math.max(0, newHp) } : prev);
+        spawnFloatingDamage(prob.damage, false);
+        triggerShake("enemy");
+      }, 450);
+
       appendLog(`Solved! Dealt ${prob.damage} damage.`);
 
       if (newHp > 0 && problemIndex + 1 < activeEnemy.problems.length) {
@@ -315,14 +364,86 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
 
   useEffect(() => {
     if (activeEnemy && game.gameOver) {
-      setPlayerHealth(hp => hp - 15);
-      spawnFloatingDamage(15, true);
-      appendLog("Wrong answer! You took 15 damage. The enemy hits you for trying a faulty key!");
+      // Enemy projectile themed to the enemy
+      const theme = ENEMY_ATTACK_THEME[activeEnemy.name] ?? { emoji: "💥", label: "Attack" };
+      spawnProjectile("enemy", theme.label, theme.emoji);
 
-      // Dismiss game over but keep on the same problem so they can try again.
+      setTimeout(() => {
+        setPlayerHealth(hp => hp - 15);
+        spawnFloatingDamage(15, true);
+        triggerShake("player");
+      }, 450);
+
+      appendLog("Wrong answer! You took 15 damage. The enemy hits you for trying a faulty key!");
       game.dismissGameOver();
     }
   }, [game.gameOver]);
+
+  const colorizeLog = (text: string) => {
+    const rules: { pattern: RegExp, className: string }[] = [
+      // Damage numbers: "10 dmg", "15 damage", "-10 HP"
+      { pattern: /(\d+)\s*(dmg|damage)/gi, className: "text-red-600 font-bold" },
+      { pattern: /(-\d+\s*(?:HP|Gold))/gi, className: "text-red-600 font-bold" },
+      // Healing / HP gain
+      { pattern: /(\+\d+\s*(?:HP|Max HP))/gi, className: "text-green-600 font-bold" },
+      { pattern: /(Fully Healed|fully healed)/g, className: "text-green-600 font-bold" },
+      // Gold
+      { pattern: /(\+?\d+\s*[Gg]old)/g, className: "text-yellow-600 font-bold" },
+      { pattern: /(-\d+\s*[Gg]old)/g, className: "text-yellow-600 font-bold" },
+      // Enemy names
+      { pattern: /(Cave Rat|Corrosive Slime|Giant Beetle|Lost Skeleton|Phantom|Fire Elemental|Mercenary|The Corrupted King|Iron Golem|Ancient Lich)/g, className: "text-red-500 font-semibold" },
+      // Positive events
+      { pattern: /(Solved!|Victory|defeated!?)/gi, className: "text-emerald-600 font-bold" },
+      { pattern: /(Enemy defeated\.)/g, className: "text-emerald-600 font-bold" },
+      // Items / potions
+      { pattern: /(Hint Potion|Closure Potion|Skip Potion|Heart Container|Alchemist's Stash)/g, className: "text-purple-600 font-semibold" },
+      // Negative events
+      { pattern: /(Wrong answer!)/g, className: "text-red-600 font-bold" },
+      { pattern: /(ambush|spiked trap)/gi, className: "text-red-500 font-semibold" },
+      // Intent
+      { pattern: /(Enemy intent:)/g, className: "text-orange-600 font-semibold" },
+      // Node types
+      { pattern: /(MINION|ELITE|BOSS|MYSTERY|TREASURE|REST|SHOP)/g, className: "text-indigo-600 font-semibold" },
+    ];
+
+    // Split text into timestamp and message
+    const dashIdx = text.indexOf(" - ");
+    if (dashIdx === -1) return text;
+    const timestamp = text.slice(0, dashIdx);
+    let message = text.slice(dashIdx + 3);
+
+    // Build colorized fragments
+    type Fragment = { text: string, className?: string };
+    let fragments: Fragment[] = [{ text: message }];
+
+    for (const rule of rules) {
+      const next: Fragment[] = [];
+      for (const frag of fragments) {
+        if (frag.className) { next.push(frag); continue; }
+        let last = 0;
+        const str = frag.text;
+        for (const m of str.matchAll(new RegExp(rule.pattern))) {
+          if (m.index! > last) next.push({ text: str.slice(last, m.index!) });
+          next.push({ text: m[0], className: rule.className });
+          last = m.index! + m[0].length;
+        }
+        if (last < str.length) next.push({ text: str.slice(last) });
+      }
+      fragments = next;
+    }
+
+    return (
+      <>
+        <span className="text-gray-400">{timestamp}</span>
+        <span className="text-gray-400"> - </span>
+        {fragments.map((f, i) =>
+          f.className
+            ? <span key={i} className={f.className}>{f.text}</span>
+            : <span key={i}>{f.text}</span>
+        )}
+      </>
+    );
+  };
 
   return (
     <div className="flex h-screen bg-gray-50 text-gray-900 font-mono">
@@ -347,102 +468,87 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
         </div>
       )}
 
-      {/* MAP COLUMN */}
-      <div className="w-1/3 p-4 border-r border-gray-300 overflow-y-auto flex flex-col relative" style={{ backgroundColor: "#fafaf9" }}>
-        <div className="sticky top-0 z-20 py-3 rounded-b-xl border-b border-gray-200 shadow-sm transition-all" style={{ backgroundColor: "#fafaf9" }}>
-          <h2 className="text-xl font-extrabold text-center text-slate-800 mb-2 flex items-center justify-center gap-2">
-            <Scroll size={22} className="text-indigo-600" />
-            Spire of FDs
-          </h2>
-          <div className="text-xs text-slate-600 text-center px-2 space-y-2 leading-relaxed mb-3">
-            <p className="italic font-medium text-indigo-700">"The Great Schemas have shattered. Anomalies ravage the once-pristine tables."</p>
-            <p>As a rogue <span className="font-bold text-blue-600">Data Knight</span>, ascend the Spire to restore <strong>BCNF</strong>!</p>
+      {/* LEFT SIDEBAR — Enemy (top) + Player (bottom) */}
+      <div className="w-72 p-4 border-r border-gray-300 flex flex-col justify-between relative overflow-hidden" style={{ backgroundColor: "#fafaf9" }}>
+        {/* PROJECTILES */}
+        {projectiles.map(p => (
+          <div
+            key={p.id}
+            className={`absolute left-1/2 -translate-x-1/2 z-30 pointer-events-none flex flex-col items-center gap-1.5 ${p.type === "rune" ? "bottom-44 animate-rune-up" : "top-48 animate-attack-down"}`}
+          >
+            {p.type === "rune" ? (
+              <div className="flex items-center gap-1">
+                {p.label.split(",").map((ch, i) => (
+                  <div key={i} className="w-10 h-10 bg-amber-100 border-2 border-amber-500 rounded-lg flex items-center justify-center shadow-lg shadow-amber-300/50">
+                    <span className="text-lg font-black text-amber-900">{ch}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <span className="text-5xl drop-shadow-xl">{p.emoji}</span>
+            )}
           </div>
+        ))}
+
+        {/* ENEMY (top) */}
+        <div className="flex flex-col items-center gap-2">
+          {activeEnemy ? (
+            <>
+              {floatingDamage.filter(d => !d.isPlayer).map(d => (
+                <div key={d.id} className="text-red-500 font-bold text-3xl animate-float-dmg pointer-events-none">
+                  -{d.val}
+                </div>
+              ))}
+              <div className={`relative flex items-center justify-center w-24 h-24 text-gray-800 rounded-full shrink-0 ${enemyShake ? "animate-hit-shake" : ""}`} style={{ backgroundColor: `${activeEnemy.spriteFill}33` }}>
+                {activeEnemy.spriteId === "rat" && <Rat size={56} fill={activeEnemy.spriteFill} color={activeEnemy.spriteColor} />}
+                {activeEnemy.spriteId === "droplet" && <Droplet size={56} fill={activeEnemy.spriteFill} color={activeEnemy.spriteColor} />}
+                {activeEnemy.spriteId === "bug" && <Bug size={56} fill={activeEnemy.spriteFill} color={activeEnemy.spriteColor} />}
+                {activeEnemy.spriteId === "skull" && <Skull size={56} fill={activeEnemy.spriteFill} color={activeEnemy.spriteColor} />}
+                {activeEnemy.spriteId === "ghost" && <Ghost size={56} fill={activeEnemy.spriteFill} color={activeEnemy.spriteColor} />}
+                {activeEnemy.spriteId === "flame" && <Flame size={56} fill={activeEnemy.spriteFill} color={activeEnemy.spriteColor} />}
+                {activeEnemy.spriteId === "sword" && <Sword size={56} fill={activeEnemy.spriteFill} color={activeEnemy.spriteColor} />}
+                {activeEnemy.spriteId === "crown" && <Crown size={56} fill={activeEnemy.spriteFill} color={activeEnemy.spriteColor} />}
+                {activeEnemy.spriteId === "shield" && <Shield size={56} fill={activeEnemy.spriteFill} color={activeEnemy.spriteColor} />}
+              </div>
+              <div className="text-gray-800 font-bold text-center truncate w-full" title={activeEnemy.name}>{activeEnemy.name}</div>
+              <div className="w-full bg-gray-300 h-4 rounded-full overflow-hidden shadow-inner">
+                <div
+                  className="bg-red-500 h-4 transition-all duration-500 ease-out"
+                  style={{ width: `${(activeEnemy.totalHealth / (activeEnemy as any).maxHealth) * 100}%` }}
+                />
+              </div>
+              <div className="text-red-700 font-bold text-sm">
+                {activeEnemy.totalHealth}/{(activeEnemy as any).maxHealth} HP
+              </div>
+              <div className="text-red-600 font-bold animate-pulse">
+                ⚔️ Intent: {enemyIntentDamage}
+              </div>
+            </>
+          ) : (
+            <div className="text-gray-400 text-sm italic text-center pt-8">No enemy</div>
+          )}
         </div>
 
-        <div className="relative w-full mt-4 shrink-0" style={{ minHeight: `${map.length * 90 + 50}px` }}>
-          {/* PATHS SVG */}
-          <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible" style={{ zIndex: 0 }}>
-            {map.flatMap((layer, lIdx) =>
-              layer.flatMap(node =>
-                node.nextIds.map(nextId => {
-                  // Find next node layer + node
-                  const nextNode = map[lIdx + 1]?.find(n => n.id === nextId);
-                  if (!nextNode) return null;
-
-                  const isAvailable = node.status === 'completed' || node.status === 'current';
-                  const isNextAvailable = isAvailable && (nextNode.status === 'available' || nextNode.status === 'current' || nextNode.status === 'completed');
-                  const strokeColor = isNextAvailable ? '#4ade80' : '#e2e8f0';
-                  const strokeWidth = isNextAvailable ? 4 : 3;
-                  const opacity = (nextNode.status === 'locked' && !isNextAvailable) ? 0.6 : 1;
-
-                  // bottom-up calculation: lIdx=0 is bottom
-                  const y1 = (map.length - 1 - node.layer) * 90 + 45;
-                  const x1 = `${node.x * 100}%`;
-                  const y2 = (map.length - 1 - nextNode.layer) * 90 + 45;
-                  const x2 = `${nextNode.x * 100}%`;
-
-                  return (
-                    <line
-                      key={`${node.id}-${nextId}`}
-                      x1={x1}
-                      y1={y1}
-                      x2={x2}
-                      y2={y2}
-                      stroke={strokeColor}
-                      strokeWidth={strokeWidth}
-                      strokeOpacity={opacity}
-                      strokeDasharray={isNextAvailable ? "none" : "4 4"}
-                    />
-                  );
-                })
-              )
-            )}
-          </svg>
-
-          {/* NODES */}
-          {map.map((layer) =>
-            layer.map(node => {
-              const theme = {
-                minion: { border: "border-slate-500", bg: "bg-slate-200", shadow: "shadow-slate-300" },
-                elite: { border: "border-red-500", bg: "bg-red-100", shadow: "shadow-red-300" },
-                boss: { border: "border-purple-600", bg: "bg-purple-200", shadow: "shadow-purple-300" },
-                treasure: { border: "border-yellow-500", bg: "bg-yellow-100", shadow: "shadow-yellow-300" },
-                mystery: { border: "border-blue-500", bg: "bg-blue-100", shadow: "shadow-blue-300" },
-                rest: { border: "border-green-500", bg: "bg-green-100", shadow: "shadow-green-300" },
-                shop: { border: "border-amber-600", bg: "bg-amber-100", shadow: "shadow-amber-300" }
-              }[node.type] || { border: "border-gray-400", bg: "bg-white", shadow: "shadow-gray-300" };
-
-              const isAvailable = node.status === "available" || node.status === "current";
-              const isCompleted = node.status === "completed";
-
-              const statusClasses = isAvailable
-                ? `${theme.border} ${theme.bg} shadow-lg ${theme.shadow} ${node.status === "current" ? "ring-4 ring-green-400 scale-110" : ""}`
-                : isCompleted
-                  ? `${theme.border} bg-gray-200 opacity-50`
-                  : `border-gray-300 bg-gray-50 opacity-50 grayscale`;
-
-              return (
-                <div
-                  key={node.id}
-                  onClick={() => handleNodeClick(node)}
-                  className={`absolute w-12 h-12 -ml-6 -mt-6 flex items-center justify-center rounded-full border-2 cursor-pointer transition-all hover:scale-110 z-10 ${statusClasses}`}
-                  style={{
-                    left: `${node.x * 100}%`,
-                    top: `${(map.length - 1 - node.layer) * 90 + 45}px`
-                  }}
-                >
-                  {node.type === "minion" && <Bug size={24} className="text-gray-700" />}
-                  {node.type === "elite" && <Ghost size={24} className="text-red-700" />}
-                  {node.type === "boss" && <Crown size={28} className="text-purple-700" />}
-                  {node.type === "treasure" && <Gem size={24} className="text-blue-500" />}
-                  {node.type === "mystery" && <CircleHelp size={24} className="text-green-600" />}
-                  {node.type === "rest" && <Tent size={24} className="text-orange-600" />}
-                  {node.type === "shop" && <Store size={24} className="text-amber-700" />}
-                </div>
-              );
-            })
-          )}
+        {/* PLAYER (bottom) */}
+        <div className="flex flex-col items-center gap-2 relative">
+          {floatingDamage.filter(d => d.isPlayer).map(d => (
+            <div key={d.id} className="absolute -top-12 text-red-500 font-bold text-3xl animate-float-dmg pointer-events-none">
+              -{d.val}
+            </div>
+          ))}
+          <div className={`relative flex items-center justify-center w-24 h-24 text-slate-800 bg-slate-100 rounded-full border-4 border-slate-300 shadow-sm shrink-0 ${playerShake ? "animate-hit-shake" : ""}`}>
+            <UserKey size={56} strokeWidth={2.5} className="z-10 text-slate-700" />
+          </div>
+          <div className="text-gray-800 font-bold">Data Knight (You)</div>
+          <div className="w-full bg-gray-300 h-4 rounded-full overflow-hidden shadow-inner">
+            <div
+              className="bg-green-500 h-4 transition-all duration-500 ease-out"
+              style={{ width: `${(playerHealth / playerMaxHealth) * 100}%` }}
+            />
+          </div>
+          <div className="text-green-700 font-bold text-sm">
+            {playerHealth}/{playerMaxHealth} HP
+          </div>
         </div>
       </div>
 
@@ -518,9 +624,98 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
         </div>
 
         <div className="flex-1 p-8 pt-24 overflow-y-auto flex flex-col">
+          {/* MAP — shown in center when selecting a node */}
           {!currentNode && (
-            <div className="text-2xl text-gray-400 m-auto text-center">
-              Select a room to proceed
+            <div className="max-w-2xl w-full mx-auto flex flex-col items-center">
+              <h2 className="text-xl font-extrabold text-center text-slate-800 mb-2 flex items-center justify-center gap-2">
+                <Scroll size={22} className="text-indigo-600" />
+                Spire of FDs
+              </h2>
+              <div className="text-xs text-slate-600 text-center px-2 space-y-2 leading-relaxed mb-4">
+                <p className="italic font-medium text-indigo-700">"The Great Schemas have shattered. Anomalies ravage the once-pristine tables."</p>
+                <p>As a rogue <span className="font-bold text-blue-600">Data Knight</span>, ascend the Spire to restore <strong>BCNF</strong>!</p>
+              </div>
+              <div className="text-lg text-gray-500 mb-4 font-bold">Select a room to proceed</div>
+
+              <div className="relative w-full shrink-0" style={{ minHeight: `${map.length * 90 + 50}px` }}>
+                {/* PATHS SVG */}
+                <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible" style={{ zIndex: 0 }}>
+                  {map.flatMap((layer, lIdx) =>
+                    layer.flatMap(node =>
+                      node.nextIds.map(nextId => {
+                        const nextNode = map[lIdx + 1]?.find(n => n.id === nextId);
+                        if (!nextNode) return null;
+
+                        const isAvailable = node.status === 'completed' || node.status === 'current';
+                        const isNextAvailable = isAvailable && (nextNode.status === 'available' || nextNode.status === 'current' || nextNode.status === 'completed');
+                        const strokeColor = isNextAvailable ? '#4ade80' : '#e2e8f0';
+                        const strokeWidth = isNextAvailable ? 4 : 3;
+                        const opacity = (nextNode.status === 'locked' && !isNextAvailable) ? 0.6 : 1;
+
+                        const y1 = (map.length - 1 - node.layer) * 90 + 45;
+                        const x1 = `${node.x * 100}%`;
+                        const y2 = (map.length - 1 - nextNode.layer) * 90 + 45;
+                        const x2 = `${nextNode.x * 100}%`;
+
+                        return (
+                          <line
+                            key={`${node.id}-${nextId}`}
+                            x1={x1} y1={y1} x2={x2} y2={y2}
+                            stroke={strokeColor}
+                            strokeWidth={strokeWidth}
+                            strokeOpacity={opacity}
+                            strokeDasharray={isNextAvailable ? "none" : "4 4"}
+                          />
+                        );
+                      })
+                    )
+                  )}
+                </svg>
+
+                {/* NODES */}
+                {map.map((layer) =>
+                  layer.map(node => {
+                    const theme = {
+                      minion: { border: "border-slate-500", bg: "bg-slate-200", shadow: "shadow-slate-300" },
+                      elite: { border: "border-red-500", bg: "bg-red-100", shadow: "shadow-red-300" },
+                      boss: { border: "border-purple-600", bg: "bg-purple-200", shadow: "shadow-purple-300" },
+                      treasure: { border: "border-yellow-500", bg: "bg-yellow-100", shadow: "shadow-yellow-300" },
+                      mystery: { border: "border-blue-500", bg: "bg-blue-100", shadow: "shadow-blue-300" },
+                      rest: { border: "border-green-500", bg: "bg-green-100", shadow: "shadow-green-300" },
+                      shop: { border: "border-amber-600", bg: "bg-amber-100", shadow: "shadow-amber-300" }
+                    }[node.type] || { border: "border-gray-400", bg: "bg-white", shadow: "shadow-gray-300" };
+
+                    const isAvailable = node.status === "available" || node.status === "current";
+                    const isCompleted = node.status === "completed";
+
+                    const statusClasses = isAvailable
+                      ? `${theme.border} ${theme.bg} shadow-lg ${theme.shadow} ${node.status === "current" ? "ring-4 ring-green-400 scale-110" : ""}`
+                      : isCompleted
+                        ? `${theme.border} bg-gray-200 opacity-50`
+                        : `border-gray-300 bg-gray-50 opacity-50 grayscale`;
+
+                    return (
+                      <div
+                        key={node.id}
+                        onClick={() => handleNodeClick(node)}
+                        className={`absolute w-12 h-12 -ml-6 -mt-6 flex items-center justify-center rounded-full border-2 cursor-pointer transition-all hover:scale-110 z-10 ${statusClasses}`}
+                        style={{
+                          left: `${node.x * 100}%`,
+                          top: `${(map.length - 1 - node.layer) * 90 + 45}px`
+                        }}
+                      >
+                        {node.type === "minion" && <Bug size={24} className="text-gray-700" />}
+                        {node.type === "elite" && <Ghost size={24} className="text-red-700" />}
+                        {node.type === "boss" && <Crown size={28} className="text-purple-700" />}
+                        {node.type === "treasure" && <Gem size={24} className="text-blue-500" />}
+                        {node.type === "mystery" && <CircleHelp size={24} className="text-green-600" />}
+                        {node.type === "rest" && <Tent size={24} className="text-orange-600" />}
+                        {node.type === "shop" && <Store size={24} className="text-amber-700" />}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </div>
           )}
 
@@ -694,76 +889,6 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
                 </div>
               )}
 
-              {/* BATTLE ARENA */}
-              <div className="flex justify-between items-start relative mt-12 mb-6 px-12">
-
-                {/* PLAYER */}
-                <div className="flex flex-col items-center gap-2 relative w-48">
-                  {floatingDamage.filter(d => d.isPlayer).map(d => (
-                    <div key={d.id} className="absolute -top-12 text-red-500 font-bold text-3xl animate-float-dmg pointer-events-none">
-                      -{d.val}
-                    </div>
-                  ))}
-
-                  <div className="relative flex items-center justify-center w-24 h-24 text-slate-800 bg-slate-100 rounded-full border-4 border-slate-300 shadow-sm shrink-0">
-                    <UserKey size={56} strokeWidth={2.5} className="z-10 text-slate-700" />
-                  </div>
-                  <div className="text-gray-800 font-bold h-6 flex items-center justify-center truncate w-full">Data Knight (You)</div>
-                  <div className="w-full bg-gray-300 h-4 rounded-full overflow-hidden shadow-inner shrink-0">
-                    <div
-                      className="bg-green-500 h-4 transition-all duration-500 ease-out"
-                      style={{ width: `${playerHealth}%` }}
-                    />
-                  </div>
-
-                  <div className="text-green-700 font-bold text-sm h-5 flex items-center">
-                    {playerHealth}/100 HP
-                  </div>
-                </div>
-
-                {/* ENEMY */}
-                <div className="flex flex-col items-center gap-2 relative w-48">
-                  {floatingDamage.filter(d => !d.isPlayer).map(d => (
-                    <div key={d.id} className="absolute -top-12 text-red-500 font-bold text-3xl animate-float-dmg pointer-events-none">
-                      -{d.val}
-                    </div>
-                  ))}
-
-                  <div className="relative flex items-center justify-center w-24 h-24 text-gray-800 rounded-full shrink-0" style={{ backgroundColor: `${activeEnemy.spriteFill}33` }}>
-                    {activeEnemy.spriteId === "rat" && <Rat size={56} fill={activeEnemy.spriteFill} color={activeEnemy.spriteColor} />}
-                    {activeEnemy.spriteId === "droplet" && <Droplet size={56} fill={activeEnemy.spriteFill} color={activeEnemy.spriteColor} />}
-                    {activeEnemy.spriteId === "bug" && <Bug size={56} fill={activeEnemy.spriteFill} color={activeEnemy.spriteColor} />}
-                    {activeEnemy.spriteId === "skull" && <Skull size={56} fill={activeEnemy.spriteFill} color={activeEnemy.spriteColor} />}
-                    {activeEnemy.spriteId === "ghost" && <Ghost size={56} fill={activeEnemy.spriteFill} color={activeEnemy.spriteColor} />}
-                    {activeEnemy.spriteId === "flame" && <Flame size={56} fill={activeEnemy.spriteFill} color={activeEnemy.spriteColor} />}
-                    {activeEnemy.spriteId === "sword" && <Sword size={56} fill={activeEnemy.spriteFill} color={activeEnemy.spriteColor} />}
-                    {activeEnemy.spriteId === "crown" && <Crown size={56} fill={activeEnemy.spriteFill} color={activeEnemy.spriteColor} />}
-                    {activeEnemy.spriteId === "shield" && <Shield size={56} fill={activeEnemy.spriteFill} color={activeEnemy.spriteColor} />}
-                  </div>
-                  <div className="text-gray-800 font-bold h-6 flex items-center justify-center truncate w-full" title={activeEnemy.name}>{activeEnemy.name}</div>
-                  <div className="w-full bg-gray-300 h-4 rounded-full overflow-hidden shadow-inner shrink-0">
-                    <div
-                      className="bg-red-500 h-4 transition-all duration-500 ease-out"
-                      style={{
-                        width: `${(activeEnemy.totalHealth /
-                          (activeEnemy as any).maxHealth) *
-                          100
-                          }%`,
-                      }}
-                    />
-                  </div>
-
-                  <div className="text-red-700 font-bold text-sm h-5 flex items-center">
-                    {activeEnemy.totalHealth}/
-                    {(activeEnemy as any).maxHealth} HP
-                  </div>
-
-                  <div className="text-red-600 font-bold animate-pulse h-6 flex items-center">
-                    ⚔️ Intent: {enemyIntentDamage}
-                  </div>
-                </div>
-              </div>
-
               {/* PROBLEM UI */}
               {game.problem && (
                 <div className="bg-slate-800 border-4 border-slate-700 shadow-2xl rounded-2xl p-6 relative overflow-hidden mt-4">
@@ -828,8 +953,8 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
 
         <div ref={logRef} className="flex-1 overflow-y-auto text-sm space-y-2">
           {battleLog.map((entry, i) => (
-            <div key={i} className="text-gray-600 border-b border-gray-200 pb-1">
-              {entry}
+            <div key={i} className="text-gray-800 border-b border-gray-200 pb-1">
+              {colorizeLog(entry)}
             </div>
           ))}
         </div>
