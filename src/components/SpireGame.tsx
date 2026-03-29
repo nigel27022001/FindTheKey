@@ -586,7 +586,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
       {/* BATTLE COLUMN */}
       <div className="flex-1 relative flex flex-col bg-stone-50 overflow-hidden h-full">
         {/* HEADER AREA */}
-        <div className="absolute top-4 left-4 right-4 z-20 flex justify-between items-center pointer-events-none">
+        <div className="sticky top-0 z-20 flex justify-between items-center pointer-events-none px-4 py-3 bg-stone-50 border-b border-gray-200 shrink-0">
           <div className="flex gap-3 items-center pointer-events-auto">
             <button
               onClick={onBack}
@@ -672,7 +672,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
           </div>
         </div>
 
-        <div className="flex-1 p-8 pt-24 overflow-y-auto flex flex-col">
+        <div className="flex-1 p-8 overflow-y-auto flex flex-col">
           {/* MAP — shown in center when selecting a node */}
           {!currentNode && (
             <div className="max-w-2xl w-full mx-auto flex flex-col items-center">
@@ -940,16 +940,15 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
               {/* PROBLEM UI */}
               {game.problem && (
                 <div className="mt-4">
-                  <div className="flex justify-end mb-1">
-                    <div className="bg-slate-900 border-2 border-slate-600 px-4 py-1 rounded-lg">
-                      <span className={`text-xs font-bold uppercase tracking-widest ${DIFF_TEXT[game.difficulty]}`}>
-                        {game.difficulty}
-                      </span>
-                    </div>
-                  </div>
                 <div className="bg-slate-800 border-4 border-slate-700 shadow-2xl rounded-2xl p-6 relative overflow-hidden">
                   {/* Decorative old-school border line */}
                   <div className="absolute inset-2 border border-slate-600/50 pointer-events-none rounded-xl" />
+
+                  <div className="absolute top-0 right-0 bg-slate-900 border-b-2 border-l-2 border-slate-600 px-4 py-1 rounded-bl-xl z-20">
+                    <span className={`text-xs font-bold uppercase tracking-widest ${DIFF_TEXT[game.difficulty]}`}>
+                      {game.difficulty}
+                    </span>
+                  </div>
 
                   <SchemaPanel
                     problem={game.problem}
