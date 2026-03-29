@@ -939,15 +939,17 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
 
               {/* PROBLEM UI */}
               {game.problem && (
-                <div className="bg-slate-800 border-4 border-slate-700 shadow-2xl rounded-2xl p-6 relative overflow-hidden mt-4">
+                <div className="mt-4">
+                  <div className="flex justify-end mb-1">
+                    <div className="bg-slate-900 border-2 border-slate-600 px-4 py-1 rounded-lg">
+                      <span className={`text-xs font-bold uppercase tracking-widest ${DIFF_TEXT[game.difficulty]}`}>
+                        {game.difficulty}
+                      </span>
+                    </div>
+                  </div>
+                <div className="bg-slate-800 border-4 border-slate-700 shadow-2xl rounded-2xl p-6 relative overflow-hidden">
                   {/* Decorative old-school border line */}
                   <div className="absolute inset-2 border border-slate-600/50 pointer-events-none rounded-xl" />
-
-                  <div className="absolute top-0 right-0 bg-slate-900 border-b-2 border-l-2 border-slate-600 px-4 py-1 rounded-bl-xl z-20">
-                    <span className={`text-xs font-bold uppercase tracking-widest ${DIFF_TEXT[game.difficulty]}`}>
-                      {game.difficulty}
-                    </span>
-                  </div>
 
                   <SchemaPanel
                     problem={game.problem}
@@ -988,6 +990,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
                       </Feedback>
                     </div>
                   )}
+                </div>
                 </div>
               )}
             </div>
