@@ -69,6 +69,7 @@ export interface GameState {
   discardHint: () => void;
   discardClosure: () => void;
   discardSkip: () => void;
+  clearPotions: () => void;
   // Actions
   loadProblem:     (diff?: Difficulty) => void;
   nextProblem:     ()                  => void;
@@ -149,6 +150,12 @@ export function useGameState(): GameState {
 
   function discardSkip(): void {
     setSkipUses(s => Math.max(0, s - 1));
+  }
+
+  function clearPotions(): void {
+    setHintsLeft(0);
+    setClosureUses(0);
+    setSkipUses(0);
   }
 
   function consumeSkipPotion(): void {
@@ -385,7 +392,7 @@ export function useGameState(): GameState {
     score, streak, round, solved, total,
     difficulty, problem, selected, foundKeys, hintsLeft,
     feedback, allSolved, problemSolved, newKey, toast, gameOver,
-    closureUses, activeClosureSight, skipUses, earnSkipPotion, consumeSkipPotion, useClosurePotion, consumeClosureUse, discardHint, discardClosure, discardSkip,
+    closureUses, activeClosureSight, skipUses, earnSkipPotion, consumeSkipPotion, useClosurePotion, consumeClosureUse, discardHint, discardClosure, discardSkip, clearPotions,
     loadProblem, nextProblem, changeDifficulty, toggleAttr, clearSelection, submitAnswer, showHint, earnHint, dismissGameOver,
     getLiveClosure, getHighlightedFDs,
   };

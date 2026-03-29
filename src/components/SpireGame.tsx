@@ -73,6 +73,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
     if (!initialized.current) {
       setMap(generateSpireMap(15, 5));
       appendLog("Run started. Map generated.");
+      game.clearPotions();
       initialized.current = true;
     }
   }, []);
@@ -160,6 +161,8 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
               })
             )
           );
+
+          setCurrentNode(null);
         }
       } else if (node.type === "mystery") {
         const rand = Math.random();
@@ -217,6 +220,8 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
               })
             )
           );
+
+          setCurrentNode(null);
         }
       } else if (node.type === "rest") {
         setPlayerHealth(() => {
@@ -238,6 +243,8 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
             })
           )
         );
+
+        setCurrentNode(null);
       } else if (node.type === "shop") {
         appendLog(`Entered the Merchant's Shop.`);
         setCurrentNode(node);
@@ -363,7 +370,6 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
 
           setCurrentProblem(nextProb);
           setBattleTimer(nextProb.timer);
-          appendLog(`Enemy intent: ${nextProb.damage} dmg`);
           game.changeDifficulty(nextProb.difficulty);
         }, 600);
       } else {
@@ -374,20 +380,17 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
 
   useEffect(() => {
     if (activeEnemy && game.gameOver) {
-      setPlayerHealth(hp => hp - activeEnemy.Damage);
-      spawnFloatingDamage(activeEnemy.Damage, true);
-      appendLog("Wrong answer! You took " + activeEnemy.Damage + " damage. The enemy hits you for trying a faulty key!");
       // Enemy projectile themed to the enemy
       const theme = ENEMY_ATTACK_THEME[activeEnemy.name] ?? { emoji: "💥", label: "Attack" };
       spawnProjectile("enemy", theme.label, theme.emoji);
 
       setTimeout(() => {
-        setPlayerHealth(hp => hp - 15);
-        spawnFloatingDamage(15, true);
+        setPlayerHealth(hp => hp - activeEnemy.Damage);
+        spawnFloatingDamage(activeEnemy.Damage, true);
         triggerShake("player");
       }, 450);
 
-      appendLog("Wrong answer! You took 15 damage. The enemy hits you for trying a faulty key!");
+      appendLog("Wrong answer! You took " + activeEnemy.Damage + " damage. The enemy hits you for trying a faulty key!");
       game.dismissGameOver();
       setBattleTimer(currentProblem?.timer ?? 30);
     }
