@@ -61,8 +61,14 @@ export interface GameState {
   gameOver:   boolean;
   closureUses: number;
   activeClosureSight: boolean;
+  skipUses: number;
+  earnSkipPotion: () => void;
+  consumeSkipPotion: () => void;
   useClosurePotion: () => void;
   consumeClosureUse: () => void;
+  discardHint: () => void;
+  discardClosure: () => void;
+  discardSkip: () => void;
   // Actions
   loadProblem:     (diff?: Difficulty) => void;
   nextProblem:     ()                  => void;
@@ -97,14 +103,15 @@ export function useGameState(): GameState {
   const [problem,    setProblem]    = useState<Problem | null>(null);
   const [selected,   setSelected]   = useState<string[]>([]);
   const [foundKeys,  setFoundKeys]  = useState<string[][]>([]);
-  const [hintsLeft,  setHintsLeft]  = useState(1);
+  const [hintsLeft,  setHintsLeft]  = useState(0);
+  const [closureUses, setClosureUses] = useState(0);
+  const [skipUses, setSkipUses] = useState(0);
   const [feedback,   setFeedback]   = useState<FeedbackState | null>(null);
   const [allSolved,  setAllSolved]  = useState(false);
   const [problemSolved, setProblemSolved] = useState(false);
   const [newKey,     setNewKey]     = useState<string[] | null>(null);
   const [toast,      setToast]      = useState<ToastState | null>(null);
   const [gameOver,   setGameOver]   = useState(false);
-  const [closureUses, setClosureUses] = useState(0);
   const [activeClosureSight, setActiveClosureSight] = useState(false);
   const [wrongAttempts, setWrongAttempts] = useState(0);
   
@@ -126,6 +133,35 @@ export function useGameState(): GameState {
 
   function useClosurePotion(): void {
     setClosureUses(c => c + 1);
+  }
+
+  function earnSkipPotion(): void {
+    setSkipUses(s => s + 1);
+  }
+
+  function discardHint(): void {
+    setHintsLeft(h => Math.max(0, h - 1));
+  }
+
+  function discardClosure(): void {
+    setClosureUses(c => Math.max(0, c - 1));
+  }
+
+  function discardSkip(): void {
+    setSkipUses(s => Math.max(0, s - 1));
+  }
+
+  function consumeSkipPotion(): void {
+    if (skipUses > 0) {
+      setSkipUses(s => Math.max(0, s - 1));
+      // In practice this instantly marks the current problem solved without penalty
+      if (problem) {
+        setProblemSolved(true);
+        setAllSolved(true);
+        setFoundKeys(problem.candidateKeys);
+        showToast("Skipped", "Used Skip Potion to instantly solve the problem.");
+      }
+    }
   }
 
   function consumeClosureUse(): void {
@@ -349,7 +385,7 @@ export function useGameState(): GameState {
     score, streak, round, solved, total,
     difficulty, problem, selected, foundKeys, hintsLeft,
     feedback, allSolved, problemSolved, newKey, toast, gameOver,
-    closureUses, activeClosureSight, useClosurePotion, consumeClosureUse,
+    closureUses, activeClosureSight, skipUses, earnSkipPotion, consumeSkipPotion, useClosurePotion, consumeClosureUse, discardHint, discardClosure, discardSkip,
     loadProblem, nextProblem, changeDifficulty, toggleAttr, clearSelection, submitAnswer, showHint, earnHint, dismissGameOver,
     getLiveClosure, getHighlightedFDs,
   };

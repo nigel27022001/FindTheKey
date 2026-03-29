@@ -70,24 +70,26 @@ export const FDRow: FC<{ fd: FD; highlighted: boolean }> = ({ fd, highlighted })
 
 // ── Feedback ──────────────────────────────────────────────────────────────────
 
-const FEEDBACK_META: Record<FeedbackType, { cls: string; emoji: string }> = {
-  correct: { cls: "bg-emerald-900/10 border-emerald-500/50 text-emerald-900",   emoji: "✨" },
-  wrong:   { cls: "bg-rose-900/10   border-rose-500/50   text-rose-900",     emoji: "🩸" },
-  hint:    { cls: "bg-amber-900/10 border-amber-500/50 text-amber-900",   emoji: "📜" },
-  info:    { cls: "bg-sky-900/10  border-sky-500/50  text-sky-900",    emoji: "👁️" },
+const FEEDBACK_META: Record<FeedbackType, { cls: string; darkCls: string; emoji: string }> = {
+  correct: { cls: "bg-emerald-900/10 border-emerald-500/50 text-emerald-900", darkCls: "bg-emerald-900/40 border-emerald-400 text-emerald-100", emoji: "✨" },
+  wrong:   { cls: "bg-rose-900/10   border-rose-500/50   text-rose-900",     darkCls: "bg-rose-900/40 border-rose-400 text-rose-100", emoji: "🩸" },
+  hint:    { cls: "bg-amber-900/10 border-amber-500/50 text-amber-900",   darkCls: "bg-amber-900/50 border-amber-400 text-amber-100", emoji: "📜" },
+  info:    { cls: "bg-sky-900/10  border-sky-500/50  text-sky-900",    darkCls: "bg-sky-900/40 border-sky-400 text-sky-100", emoji: "👁️" },
 };
 
 interface FeedbackProps {
   type:      FeedbackType;
   title:     string;
   children?: ReactNode;
+  dark?:     boolean;
 }
 
-export const Feedback: FC<FeedbackProps> = ({ type, title, children }) => {
+export const Feedback: FC<FeedbackProps> = ({ type, title, children, dark }) => {
   if (!title && !children) return null;
-  const { cls, emoji } = FEEDBACK_META[type];
+  const { cls, darkCls, emoji } = FEEDBACK_META[type];
+  const activeCls = dark ? darkCls : cls;
   return (
-    <div className={`${cls} border-l-4 rounded-r-md px-6 py-4 mt-4 leading-relaxed animate-fade-up shadow-sm`}>
+    <div className={`${activeCls} border-l-4 rounded-r-md px-6 py-4 mt-4 leading-relaxed animate-fade-up shadow-sm`}>
       {title && (
         <div className="font-bold text-lg mb-2 flex items-center gap-3 font-serif tracking-wide border-b border-black/10 pb-1 inline-flex">
           <span>{emoji}</span>
