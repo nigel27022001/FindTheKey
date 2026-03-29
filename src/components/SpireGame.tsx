@@ -1,7 +1,7 @@
 import type { FC } from "react";
 import { useState, useEffect, useRef } from "react";
-import { Bug, Ghost, Crown, Gem, CircleHelp, Tent, Rat, Droplet, Skull, Flame, Sword, Shield, Coins, Heart, Scroll, Store, FlaskConical, UserKey, FastForward } from "lucide-react";
-import { generateSpireMap, generateEnemy } from "../lib/spireMap";
+import { Bug, Ghost, Crown, Gem, CircleHelp, Tent, Timer, Rat, Droplet, Skull, Flame, Sword, Shield, Coins, Heart, Scroll, Store, FlaskConical, UserKey, FastForward } from "lucide-react";
+import { generateSpireMap, generateEnemy, getRandomEnemyProblem } from "../lib/spireMap";
 import { DIFF_TEXT } from "../lib/difficultyColors";
 import type { SpireNode, EnemyConfig } from "../lib/spireMap";
 import { useGameState } from "../hooks/useGameState";
@@ -21,7 +21,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
   const [map, setMap] = useState<SpireNode[][]>([]);
   const [currentNode, setCurrentNode] = useState<SpireNode | null>(null);
   const [activeEnemy, setActiveEnemy] = useState<EnemyConfig | null>(null);
-  const [problemIndex, setProblemIndex] = useState(0);
+  const [currentProblem, setCurrentProblem] = useState<{ difficulty: "easy" | "medium" | "hard" | "expert", damage: number, timer: number } | null>(null);
 
   const [showVictory, setShowVictory] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
@@ -31,9 +31,10 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
   const [gold, setGold] = useState(0);
   const [floatingDamage, setFloatingDamage] = useState<{ id: number, val: number, isPlayer: boolean }[]>([]);
   const [discardPrompt, setDiscardPrompt] = useState<{ type: "hint" | "closure" | "skip", index: number } | null>(null);
-  const [pendingPotions, setPendingPotions] = useState<{id: string, type: "hint" | "closure" | "skip"}[]>([]);
+  const [pendingPotions, setPendingPotions] = useState<{ id: string, type: "hint" | "closure" | "skip" }[]>([]);
 
   const [battleLog, setBattleLog] = useState<string[]>([]);
+  const [battleTimer, setBattleTimer] = useState<number | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
 
   const appendLog = (message: string) => {
@@ -52,8 +53,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
     });
   }, [battleLog]);
 
-  const enemyIntentDamage =
-    activeEnemy?.problems?.[problemIndex]?.damage ?? 0;
+  const enemyIntentDamage = activeEnemy?.Damage ?? 0;
 
   const initialized = useRef(false);
   useEffect(() => {
@@ -91,21 +91,25 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
         };
 
         setActiveEnemy(enemyWithMax);
-        setProblemIndex(0);
+
+        const newProb = getRandomEnemyProblem(enemyWithMax);
+
+        setCurrentProblem(newProb);
 
         appendLog(
           `A ${enemyWithMax.name} appears! (${enemyWithMax.totalHealth} HP)`
         );
-        appendLog(`Enemy intent: ${enemyWithMax.problems[0]?.damage ?? 0} dmg`);
+        appendLog(`Enemy intent: ${enemyWithMax.Damage} dmg`);
 
-        game.changeDifficulty(enemyWithMax.problems[0].difficulty);
+        game.changeDifficulty(newProb.difficulty);
+        setBattleTimer(newProb.timer);
       } else if (node.type === "treasure") {
         const rand = Math.random();
-        let drops: {id: string, type: "hint" | "closure" | "skip"}[] = [];
+        let drops: { id: string, type: "hint" | "closure" | "skip" }[] = [];
         let shouldAutoComplete = true;
-        
+
         if (rand < 0.25) {
-          drops.push({id: Math.random().toString(), type: "skip"});
+          drops.push({ id: Math.random().toString(), type: "skip" });
           appendLog(`Treasure: Found a Skip Potion!`);
         } else if (rand < 0.5) {
           setGold(g => g + 100);
@@ -118,8 +122,8 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
           });
           appendLog(`Treasure: Found a Heart Container! (+20 Max HP and fully healed)`);
         } else {
-          drops.push({id: Math.random().toString(), type: "hint"});
-          drops.push({id: Math.random().toString(), type: "closure"});
+          drops.push({ id: Math.random().toString(), type: "hint" });
+          drops.push({ id: Math.random().toString(), type: "closure" });
           appendLog(`Treasure: Found the Alchemist's Stash! (Hint + Closure Potion)`);
         }
 
@@ -147,14 +151,14 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
       } else if (node.type === "mystery") {
         const rand = Math.random();
         let shouldAutoComplete = false;
-        let drops: {id: string, type: "hint" | "closure" | "skip"}[] = [];
+        let drops: { id: string, type: "hint" | "closure" | "skip" }[] = [];
 
         if (rand < 0.2) {
           if (Math.random() < 0.5) {
-            drops.push({id: Math.random().toString(), type: "hint"});
+            drops.push({ id: Math.random().toString(), type: "hint" });
             appendLog(`Mystery: Found a strange liquid... it's a Hint Potion!`);
           } else {
-            drops.push({id: Math.random().toString(), type: "closure"});
+            drops.push({ id: Math.random().toString(), type: "closure" });
             appendLog(`Mystery: Found a strange liquid... it's a Closure Potion!`);
           }
           setPendingPotions(drops);
@@ -170,12 +174,16 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
           appendLog(`Mystery: It's an ambush!`);
           const enemy = generateEnemy("minion");
           const enemyWithMax = { ...enemy, maxHealth: enemy.totalHealth };
-          
+
           setActiveEnemy(enemyWithMax);
-          setProblemIndex(0);
+
+          const newProb = getRandomEnemyProblem(enemyWithMax);
+
+          setCurrentProblem(newProb);
           appendLog(`A ${enemyWithMax.name} appears! (${enemyWithMax.totalHealth} HP)`);
-          appendLog(`Enemy intent: ${enemyWithMax.problems[0]?.damage ?? 0} dmg`);
-          game.changeDifficulty(enemyWithMax.problems[0].difficulty);
+          appendLog(`Enemy intent: ${enemyWithMax.Damage} dmg`);
+          game.changeDifficulty(newProb.difficulty);
+          setBattleTimer(newProb.timer);
         } else {
           appendLog(`Mystery: Stumbled upon a hidden Merchant's Tent!`);
           setCurrentNode({ ...node, type: "shop" });
@@ -257,6 +265,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
 
     setCurrentNode(null);
     setActiveEnemy(null);
+    setBattleTimer(null);
   };
 
   // Victory transition: show overlay briefly, then return to map
@@ -284,45 +293,64 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
   };
 
   useEffect(() => {
-    if (activeEnemy && game.problemSolved) {
-      const prob = activeEnemy.problems[problemIndex];
-      const newHp = activeEnemy.totalHealth - prob.damage;
+    if (activeEnemy && game.problemSolved && currentProblem) {
+      const timeRemaining = battleTimer !== null ? battleTimer : currentProblem.timer;
+      const weightedDamage = Math.max(1, Math.round(currentProblem.damage * (timeRemaining / currentProblem.timer)));
+
+      const newHp = activeEnemy.totalHealth - weightedDamage;
 
       setActiveEnemy({
         ...activeEnemy,
         totalHealth: Math.max(0, newHp),
       });
 
-      spawnFloatingDamage(prob.damage, false);
-      appendLog(`Solved! Dealt ${prob.damage} damage.`);
+      spawnFloatingDamage(weightedDamage, false);
+      appendLog(`Solved! Dealt ${weightedDamage} damage.`);
 
-      if (newHp > 0 && problemIndex + 1 < activeEnemy.problems.length) {
+      if (newHp > 0) {
         setTimeout(() => {
-          const nextIdx = problemIndex + 1;
-          setProblemIndex(nextIdx);
-          appendLog(
-            `Enemy intent: ${activeEnemy.problems[nextIdx]?.damage ?? 0} dmg`
-          );
-          game.changeDifficulty(
-            activeEnemy.problems[nextIdx].difficulty
-          );
-        }, 600);
-      }
+          const nextProb = getRandomEnemyProblem(activeEnemy);
 
-      if (newHp <= 0) appendLog("Enemy defeated.");
+          setCurrentProblem(nextProb);
+          setBattleTimer(nextProb.timer);
+          appendLog(`Enemy intent: ${nextProb.damage} dmg`);
+          game.changeDifficulty(nextProb.difficulty);
+        }, 600);
+      } else {
+        appendLog("Enemy defeated.");
+      }
     }
   }, [game.problemSolved]);
 
   useEffect(() => {
     if (activeEnemy && game.gameOver) {
-      setPlayerHealth(hp => hp - 15);
-      spawnFloatingDamage(15, true);
-      appendLog("Wrong answer! You took 15 damage. The enemy hits you for trying a faulty key!");
+      setPlayerHealth(hp => hp - activeEnemy.Damage);
+      spawnFloatingDamage(activeEnemy.Damage, true);
+      appendLog("Wrong answer! You took " + activeEnemy.Damage + " damage. The enemy hits you for trying a faulty key!");
 
       // Dismiss game over but keep on the same problem so they can try again.
       game.dismissGameOver();
+      setBattleTimer(currentProblem?.timer ?? 30);
     }
   }, [game.gameOver]);
+
+  //BattleTimer Logic
+  useEffect(() => {
+    if (activeEnemy && activeEnemy.totalHealth > 0 && !showVictory && battleTimer !== null && battleTimer > 0) {
+
+      const timer = setTimeout(() => {
+        setBattleTimer(t => (t ? t - 1 : 0));
+      }, 1000);
+      return () => clearTimeout(timer);
+
+    } else if (battleTimer === 0 && activeEnemy && activeEnemy.totalHealth > 0 && currentProblem) {
+      setPlayerHealth(hp => hp - activeEnemy.Damage);
+      spawnFloatingDamage(activeEnemy.Damage, true);
+      appendLog("Time ran out! The enemy strikes! You took " + activeEnemy.Damage + " damage.");
+
+      setBattleTimer(currentProblem.timer);
+    }
+  }, [activeEnemy, showVictory, battleTimer]);
 
   return (
     <div className="flex h-screen bg-gray-50 text-gray-900 font-mono">
@@ -450,71 +478,89 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
       <div className="flex-1 relative flex flex-col bg-stone-50 overflow-hidden h-full">
         {/* HEADER AREA */}
         <div className="absolute top-4 left-4 right-4 z-20 flex justify-between items-center pointer-events-none">
-          <button
-            onClick={() => setShowHelp(true)}
-            className="flex items-center gap-2 px-6 py-2.5 pointer-events-auto bg-white hover:bg-slate-50 text-blue-700 hover:text-blue-900 rounded-2xl shadow-sm border border-gray-200 transition-colors font-bold"
-          >
-            <CircleHelp size={20} /> How to Play
-          </button>
+          <div className="flex gap-3 items-center pointer-events-auto">
+            <button
+              onClick={onBack}
+              className="px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-800 rounded-2xl shadow-sm border border-gray-200 transition-colors font-bold"
+            >
+              ← Back
+            </button>
+            <button
+              onClick={() => setShowHelp(true)}
+              className="flex items-center gap-2 px-6 py-2.5 bg-white hover:bg-slate-50 text-blue-700 hover:text-blue-900 rounded-2xl shadow-sm border border-gray-200 transition-colors font-bold"
+            >
+              <CircleHelp size={20} /> How to Play
+            </button>
+          </div>
 
           <div className="flex gap-4 sm:gap-6 px-6 py-2.5 items-center pointer-events-auto bg-white rounded-2xl shadow-sm border border-gray-200">
-            <div className="flex items-center gap-2 text-green-700 font-bold">
+            <div className={`flex items-center gap-2 px-4 py-1.5 rounded-full font-bold transition-all duration-300 ${battleTimer !== null && battleTimer <= 5
+              ? 'bg-red-100 text-red-700 shadow-[0_0_15px_rgba(239,68,68,0.5)] border-2 border-red-500 animate-pulse'
+              : battleTimer !== null && battleTimer <= 10
+                ? 'bg-orange-100 text-orange-700 border-2 border-orange-400'
+                : 'bg-slate-100 text-slate-700 border-2 border-slate-300'
+              }`}>
+              <Timer size={20} className={battleTimer !== null && battleTimer <= 5 ? "animate-bounce" : ""} />
+              <span className="text-xl tabular-nums w-8 text-center">{battleTimer}</span>
+            </div>
+
+            <div className="flex items-center gap-2 text-green-700 font-bold border-l border-gray-200 px-4 sm:px-6">
               <Heart size={24} className="fill-green-500 text-green-600" />
               <span className="text-lg">{playerHealth} / {playerMaxHealth}</span>
             </div>
-            
-            <div className="flex items-center gap-2 border-x border-gray-200 px-4 sm:px-6">
-            {Array.from({ length: 3 }).map((_, i) => {
-              let pType: "hint" | "closure" | "skip" | null = null;
-              if (i < game.hintsLeft) pType = "hint";
-              else if (i < game.hintsLeft + game.closureUses) pType = "closure";
-              else if (i < game.hintsLeft + game.closureUses + game.skipUses) pType = "skip";
 
-              return (
-                <div key={i} className="relative">
-                  {pType === "hint" ? (
-                    <div onClick={() => setDiscardPrompt({type: "hint", index: i})} className="w-8 h-8 rounded-full flex items-center justify-center bg-amber-50 border-2 border-amber-300 cursor-pointer hover:scale-110 transition-transform" title="Hint Scroll">
-                      <Scroll size={16} className="text-amber-600" fill="currentColor" />
-                    </div>
-                  ) : pType === "closure" ? (
-                    <div onClick={() => setDiscardPrompt({type: "closure", index: i})} className="w-8 h-8 rounded-full flex items-center justify-center bg-purple-50 border-2 border-purple-300 cursor-pointer hover:scale-110 transition-transform" title="Closure Potion">
-                      <FlaskConical size={16} className="text-purple-600" fill="currentColor" />
-                    </div>
-                  ) : pType === "skip" ? (
-                    <div onClick={() => setDiscardPrompt({type: "skip", index: i})} className="w-8 h-8 rounded-full flex items-center justify-center bg-rose-50 border-2 border-rose-300 cursor-pointer hover:scale-110 transition-transform" title="Skip Potion">
-                      <FastForward size={16} className="text-rose-600" fill="currentColor" />
-                    </div>
-                  ) : (
-                    <div className="w-8 h-8 rounded-full border-2 border-dashed border-gray-300 bg-gray-50" title="Empty Slot"></div>
-                  )}
+            <div className="flex items-center gap-2 border-l border-gray-200 px-4 sm:px-6">
+              {Array.from({ length: 3 }).map((_, i) => {
+                let pType: "hint" | "closure" | "skip" | null = null;
+                if (i < game.hintsLeft) pType = "hint";
+                else if (i < game.hintsLeft + game.closureUses) pType = "closure";
+                else if (i < game.hintsLeft + game.closureUses + game.skipUses) pType = "skip";
 
-                  {discardPrompt?.index === i && (
-                    <div className="absolute top-12 left-1/2 -translate-x-1/2 bg-white rounded-xl shadow-xl border border-gray-200 p-3 z-50 text-center pointer-events-auto min-w-32 animate-fade-in">
-                      {/* Triangle Pointer */}
-                      <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-t border-l border-gray-200 rotate-45"></div>
-                      <div className="relative z-10">
-                        <div className="text-sm font-bold text-slate-800 mb-2">Discard?</div>
-                        <div className="flex gap-2 justify-center">
-                          <button onClick={() => setDiscardPrompt(null)} className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-bold transition-colors">Cancel</button>
-                          <button onClick={() => {
-                            if (discardPrompt.type === "hint") game.discardHint();
-                            if (discardPrompt.type === "closure") game.discardClosure();
-                            if (discardPrompt.type === "skip") game.discardSkip();
-                            setDiscardPrompt(null);
-                          }} className="px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-xs font-bold transition-colors">Discard</button>
+                return (
+                  <div key={i} className="relative">
+                    {pType === "hint" ? (
+                      <div onClick={() => setDiscardPrompt({ type: "hint", index: i })} className="w-8 h-8 rounded-full flex items-center justify-center bg-amber-50 border-2 border-amber-300 cursor-pointer hover:scale-110 transition-transform" title="Hint Scroll">
+                        <Scroll size={16} className="text-amber-600" fill="currentColor" />
+                      </div>
+                    ) : pType === "closure" ? (
+                      <div onClick={() => setDiscardPrompt({ type: "closure", index: i })} className="w-8 h-8 rounded-full flex items-center justify-center bg-purple-50 border-2 border-purple-300 cursor-pointer hover:scale-110 transition-transform" title="Closure Potion">
+                        <FlaskConical size={16} className="text-purple-600" fill="currentColor" />
+                      </div>
+                    ) : pType === "skip" ? (
+                      <div onClick={() => setDiscardPrompt({ type: "skip", index: i })} className="w-8 h-8 rounded-full flex items-center justify-center bg-rose-50 border-2 border-rose-300 cursor-pointer hover:scale-110 transition-transform" title="Skip Potion">
+                        <FastForward size={16} className="text-rose-600" fill="currentColor" />
+                      </div>
+                    ) : (
+                      <div className="w-8 h-8 rounded-full border-2 border-dashed border-gray-300 bg-gray-50" title="Empty Slot"></div>
+                    )}
+
+                    {discardPrompt?.index === i && (
+                      <div className="absolute top-12 left-1/2 -translate-x-1/2 bg-white rounded-xl shadow-xl border border-gray-200 p-3 z-50 text-center pointer-events-auto min-w-32 animate-fade-in">
+                        {/* Triangle Pointer */}
+                        <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-t border-l border-gray-200 rotate-45"></div>
+                        <div className="relative z-10">
+                          <div className="text-sm font-bold text-slate-800 mb-2">Discard?</div>
+                          <div className="flex gap-2 justify-center">
+                            <button onClick={() => setDiscardPrompt(null)} className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-bold transition-colors">Cancel</button>
+                            <button onClick={() => {
+                              if (discardPrompt.type === "hint") game.discardHint();
+                              if (discardPrompt.type === "closure") game.discardClosure();
+                              if (discardPrompt.type === "skip") game.discardSkip();
+                              setDiscardPrompt(null);
+                            }} className="px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-xs font-bold transition-colors">Discard</button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex items-center gap-2 text-yellow-600 font-bold">
+              <Coins size={24} className="fill-yellow-400 text-yellow-500" />
+              <span className="text-lg">{gold}</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2 text-yellow-600 font-bold">
-            <Coins size={24} className="fill-yellow-400 text-yellow-500" />
-            <span className="text-lg">{gold}</span>
-          </div>
-        </div>
         </div>
 
         <div className="flex-1 p-8 pt-24 overflow-y-auto flex flex-col">
@@ -595,7 +641,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
                     </div>
                   </button>
                 </div>
-                
+
                 {game.hintsLeft + game.closureUses + game.skipUses >= 3 && (
                   <div className="mt-6 text-red-600 font-bold bg-red-100/50 py-2 rounded-lg border border-red-200">
                     Potion belt is full! Discard a potion to acquire more.
@@ -620,7 +666,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
                 <Gem size={48} className="mx-auto text-blue-500 mb-4" />
                 <h3 className="text-2xl font-black text-slate-800 mb-6">Loot Recovered!</h3>
                 <p className="text-slate-600 mb-6 font-medium">You found mysterious potions. Take what you can carry.</p>
-                
+
                 <div className="flex flex-wrap gap-4 justify-center mb-6">
                   {pendingPotions.map(potion => (
                     <button
@@ -630,7 +676,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
                           if (potion.type === "hint") game.earnHint();
                           if (potion.type === "closure") game.useClosurePotion();
                           if (potion.type === "skip") game.earnSkipPotion();
-                          
+
                           setPendingPotions(prev => {
                             const next = prev.filter(p => p.id !== potion.id);
                             if (next.length === 0) handleFightComplete(); // auto close if done
@@ -640,9 +686,8 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
                       }}
                       className="flex-1 min-w-[120px] bg-slate-50 border-2 border-slate-200 rounded-xl p-4 flex flex-col items-center gap-2 hover:bg-white hover:border-blue-400 hover:shadow-md transition-all active:scale-95 group"
                     >
-                      <div className={`p-3 rounded-full group-hover:scale-110 transition-transform ${
-                          potion.type === "hint" ? "bg-amber-100 text-amber-600" :
-                          potion.type === "closure" ? "bg-purple-100 text-purple-600" :
+                      <div className={`p-3 rounded-full group-hover:scale-110 transition-transform ${potion.type === "hint" ? "bg-amber-100 text-amber-600" :
+                        potion.type === "closure" ? "bg-purple-100 text-purple-600" :
                           "bg-rose-100 text-rose-600"
                         }`}>
                         {potion.type === "hint" && <Scroll size={32} />}
@@ -653,13 +698,13 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
                     </button>
                   ))}
                 </div>
-                
+
                 {game.hintsLeft + game.closureUses + game.skipUses >= 3 && (
                   <div className="mb-8 text-red-600 font-bold text-sm bg-red-50 py-2.5 px-4 rounded-xl border border-red-200 shadow-sm">
                     Potion belt is full! Discard a potion (click top right) or leave it.
                   </div>
                 )}
-                
+
                 <button
                   onClick={() => {
                     setPendingPotions([]);
@@ -843,14 +888,14 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
               <h2 className="text-2xl font-black uppercase tracking-widest flex items-center gap-2">
                 <CircleHelp size={28} className="text-amber-400" /> How to Play
               </h2>
-              <button 
+              <button
                 onClick={() => setShowHelp(false)}
                 className="text-slate-300 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
               >
                 ✕
               </button>
             </div>
-            
+
             <div className="p-6 overflow-y-auto space-y-6 text-slate-800">
               <section>
                 <h3 className="text-xl font-bold border-b-2 border-slate-200 pb-2 mb-3 text-slate-900">The Spire</h3>
@@ -941,9 +986,9 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
                 </div>
               </section>
             </div>
-            
+
             <div className="p-4 bg-gray-100 border-t-2 border-gray-200 text-center shrink-0">
-              <button 
+              <button
                 onClick={() => setShowHelp(false)}
                 className="bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 px-8 rounded-lg shadow-sm border-b-4 border-amber-800 active:translate-y-1 active:border-b-0 transition-all uppercase tracking-wider"
               >

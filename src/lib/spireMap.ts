@@ -1,3 +1,5 @@
+import type { Difficulty } from "./problemGenerator";
+
 export type NodeType = "minion" | "elite" | "boss" | "mystery" | "treasure" | "rest" | "shop";
 export type NodeStatus = "locked" | "available" | "completed" | "current";
 
@@ -17,13 +19,58 @@ export interface EnemyConfig {
   spriteId: string;
   spriteColor: string;
   spriteFill: string;
-  totalHealth: number;  // Represents number of problems * damage per problem
-  problems: {
-    difficulty: "easy" | "medium" | "hard" | "expert";
-    damage: number;
-  }[];
+  totalHealth: number;  // Fixed Health for difficulty as we want damage scaling with time
+  Damage: number;
+  problems: Difficulty[];
 }
 
+export const EnemyStats = {
+  "minion": {
+    health: 20,
+    damage: 10,
+  },
+  "elite": {
+    health: 50,
+    damage: 15,
+  },
+  "boss": {
+    health: 100,
+    damage: 20,
+  }
+}
+
+export const EnemyProblem = {
+  "minion": {
+    "easy": {
+      playerDamage: 20,
+      timer: 10
+    },
+    "medium": {
+      playerDamage: 30,
+      timer: 20
+    },
+  },
+  "elite": {
+    "medium": {
+      playerDamage: 30,
+      timer: 20
+    },
+    "hard": {
+      playerDamage: 40,
+      timer: 30
+    }
+  },
+  "boss": {
+    "hard": {
+      playerDamage: 40,
+      timer: 30
+    },
+    "expert": {
+      playerDamage: 60,
+      timer: 40
+    }
+  }
+}
 /**
  * Generate a Spire-like map with branching paths.
  */
@@ -132,37 +179,30 @@ export function generateEnemy(type: "minion" | "elite" | "boss"): EnemyConfig {
     return {
       type,
       ...template,
-      totalHealth: 20,
+      totalHealth: EnemyStats.minion.health,
       problems: [
-        { difficulty: "easy", damage: 10 },
-        { difficulty: "medium", damage: 10 }
-      ]
+        "easy",
+        "medium"
+      ],
+      Damage: EnemyStats.minion.damage
     };
   } else if (type === "elite") {
     const template = ELITE_ROSTER[Math.floor(Math.random() * ELITE_ROSTER.length)];
-    // 2-3 medium/hard
-    const numProblems = Math.random() < 0.5 ? 2 : 3;
-    const problems = [];
-    let hp = 0;
-    for (let i = 0; i < numProblems; i++) {
-      const diff = i === 0 ? "medium" : "hard";
-      const dmg = diff === "hard" ? 20 : 15;
-      problems.push({ difficulty: diff as any, damage: dmg });
-      hp += dmg;
-    }
-    return { type, ...template, totalHealth: hp, problems };
+    return {
+      type, ...template, totalHealth: EnemyStats.elite.health, problems: ["medium", "hard"],
+      Damage: EnemyStats.elite.damage
+    };
   } else {
     const template = BOSS_ROSTER[Math.floor(Math.random() * BOSS_ROSTER.length)];
-    // boss: 4-5 hard/expert
-    const numProblems = Math.random() < 0.5 ? 4 : 5;
-    const problems = [];
-    let hp = 0;
-    for (let i = 0; i < numProblems; i++) {
-      const diff = i < 2 ? "hard" : "expert";
-      const dmg = diff === "expert" ? 30 : 20;
-      problems.push({ difficulty: diff as any, damage: dmg });
-      hp += dmg;
-    }
-    return { type, ...template, totalHealth: hp, problems };
+    return {
+      type, ...template, totalHealth: EnemyStats.boss.health, problems: ["hard", "expert"],
+      Damage: EnemyStats.boss.damage
+    };
   }
+}
+
+export function getRandomEnemyProblem(enemy: EnemyConfig): { difficulty: Difficulty, damage: number, timer: number } {
+  const randDiff = enemy.problems[Math.floor(Math.random() * enemy.problems.length)] as Difficulty;
+  const details = (EnemyProblem as any)[enemy.type][randDiff];
+  return { difficulty: randDiff, damage: details.playerDamage, timer: details.timer };
 }
