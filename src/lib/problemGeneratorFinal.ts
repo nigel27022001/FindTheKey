@@ -30,17 +30,20 @@ interface FdConstraints {
 }
 
 export const FD_CONFIG: Record<Difficulty, FdConstraints> = {
-  easy: {minLHS: 1, maxLHS: 1, minRHS: 1, maxRHS: 2},
-  medium: {minLHS: 1, maxLHS: 2, minRHS: 1, maxRHS: 3},
-  hard: {minLHS: 1, maxLHS: 3, minRHS: 1, maxRHS: 3},
-  expert: {minLHS: 2, maxLHS: 4, minRHS: 1, maxRHS: 3},
-}
+  easy:   { minLHS: 1, maxLHS: 1, minRHS: 1, maxRHS: 2 },
+  medium: { minLHS: 1, maxLHS: 2, minRHS: 1, maxRHS: 2 },
+  // hard minLHS:1 allows singleton LHS to create chains while
+  // maxLHS:3 enables redundant LHS opportunities
+  hard:   { minLHS: 1, maxLHS: 3, minRHS: 1, maxRHS: 2 },
+  // expert forces composite LHS on every FD — no easy singleton FDs
+  expert: { minLHS: 1, maxLHS: 4, minRHS: 1, maxRHS: 3 },
+};
 
 export const DIFFICULTY_CONFIG: Record<Difficulty, DifficultyConfig> = {
-  easy:   { minA: 3, maxA: 4, minF: 2, maxF: 3, minK: 1, maxK: 1, minKL: 1, maxKL: 1},
-  medium: { minA: 4, maxA: 5, minF: 3, maxF: 4, minK: 1, maxK: 1, minKL: 1, maxKL: 2 },
+  easy:   { minA: 3, maxA: 4, minF: 2, maxF: 3, minK: 1, maxK: 1, minKL: 1, maxKL: 1 },
+  medium: { minA: 4, maxA: 5, minF: 3, maxF: 4, minK: 1, maxK: 2, minKL: 1, maxKL: 2 },
   hard:   { minA: 5, maxA: 6, minF: 4, maxF: 5, minK: 2, maxK: 3, minKL: 2, maxKL: 3 },
-  expert: { minA: 6, maxA: 7, minF: 5, maxF: 8, minK: 2, maxK: 3, minKL: 2, maxKL: 4 },
+  expert: { minA: 6, maxA: 7, minF: 5, maxF: 8, minK: 2, maxK: 3, minKL: 2, maxKL: 3 },
 };
 
 export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
@@ -65,32 +68,26 @@ const pick = <T>(arr: T[], k: number): T[] => shuffle(arr).slice(0, k);
 
 interface StructuralThreshold {
   minDerivationRounds: number;
+  keyInLHSratio: number; // refers to candidate key being directly derived from LHS
   minRedundantLHS: number
-  //minOverlapRatio: number;
   minRedundantFDs: number;
   minNearMisses: number;
-  minAvgLhsSize: number;
-  keyInLHSratio: number; // refers to candidate key being directly derived from LHS
 }
 
 const STRUCTURAL_THRESHOLDS: Partial<Record<Difficulty, StructuralThreshold>> = {
   hard: {
-    minDerivationRounds: 3,
-    minRedundantLHS: 1,
-    //minOverlapRatio: 0.25,
-    minRedundantFDs: 1,
-    minNearMisses: 1,
-    minAvgLhsSize: 1.4,
-    keyInLHSratio: 0.75
+    minDerivationRounds: 2,  // must chain through at least 2 steps
+    keyInLHSratio: 0,        // no key should be directly readable
+    minRedundantLHS: 1,      // at least one FD has a droppable LHS attr
+    minRedundantFDs: 1,      // at least one FD is derivable from others
+    minNearMisses: 1,        // at least one decoy near-key exists
   },
   expert: {
-    minDerivationRounds: 3,
-    //minOverlapRatio: 0.3,
-    minRedundantLHS: 2,
+    minDerivationRounds: 3,  // deeper chain required
+    keyInLHSratio: 0,        // strictly no readable keys
+    minRedundantLHS: 2,      // multiple FDs with droppable LHS attrs
     minRedundantFDs: 1,
-    minNearMisses: 1,
-    minAvgLhsSize: 1.8,
-    keyInLHSratio: 0.50
+    minNearMisses: 2,        // multiple decoys to sift through
   },
 };
 
@@ -183,12 +180,6 @@ function countRedundantFDs(fds: FD[]): number {
   return redundant;
 }
 
-function averageLhsSize(fds: FD[]): number {
-  if (!fds.length) return 0;
-  const total = fds.reduce((sum, fd) => sum + fd.lhs.length, 0);
-  return total / fds.length;
-}
-
 function countNearMisses(allAttrs: string[], fds: FD[], candidateKeys: string[][]): number {
   if (!candidateKeys.length) return 0;
 
@@ -217,24 +208,21 @@ function passesStructuralProfile(
 
   const derivationRounds = maxKeyDerivationRounds(candidateKeys, fds);
   const redundantLHS = countRedundantLHS(fds);
-//  const overlapRatio = lhsOverlapRatio(allAttrs, fds);
   const redundantFDs = countRedundantFDs(fds);
   const keyInLHSratio = getKeyInLHSratio(candidateKeys, fds)
- // const nearMisses = countNearMisses(allAttrs, fds, candidateKeys);
-  //const avgLhsSize = averageLhsSize(fds);
-  // nearMisses >= threshold.minNearMisses &&
-  //avgLhsSize >= threshold.minAvgLhsSize
+  const nearMisses = countNearMisses(allAttrs, fds, candidateKeys)
 
   return (
     derivationRounds >= threshold.minDerivationRounds &&
     redundantLHS >= threshold.minRedundantLHS &&
     redundantFDs >= threshold.minRedundantFDs &&
-    keyInLHSratio <= threshold.keyInLHSratio
+    keyInLHSratio <= threshold.keyInLHSratio &&
+    nearMisses >= threshold.minNearMisses
   );
 }
 
-function buildFallbackProblem(diff: Difficulty): Problem {
-    console.log("fallback!")
+export function buildFallbackProblem(diff: Difficulty): Problem {
+  console.log("fallback")
   if (diff === "easy") {
     const allAttrs = ["A", "B", "C"];
     const fds: FD[] = [{ lhs: ["A"], rhs: ["B", "C"] }];
@@ -281,6 +269,13 @@ function getKeyInLHSratio(candidateKeys: string[][], fds: FD[]): number {
   return overlaps / candidateKeys.length
 }
 
+function allAttrsReachable(allAttrs: string[], fds: FD[]): boolean {
+  const onRHS = new Set(fds.flatMap(fd => fd.rhs));
+  const onLHS = new Set(fds.flatMap(fd => fd.lhs));
+  // Every attr should appear somewhere meaningfully
+  return allAttrs.every(a => onRHS.has(a) || onLHS.has(a));
+}
+
 /**
  * Generate a random problem for the given difficulty.
  * Retries up to 3000 times until key-count and structural constraints are satisfied.
@@ -315,10 +310,15 @@ export function generateProblem(diff: Difficulty): Problem {
 
       const rhs = pick(remaining, rhsSize).sort();
       const key = lhs.join("") + "->" + rhs.join("");
+
+      if (lhs.length == 1 && rhs.length == 1 && (diff == "hard" || diff == "expert")) continue
       if (!seen.has(key)) { seen.add(key); fds.push({ lhs, rhs }); }
     }
-
+    
     if (fds.length < 2) continue;
+    
+    // Ensures no orphan attributes
+    if(!allAttrsReachable && (diff == "easy" || diff == "medium")) continue;
 
     const candidateKeys = findAllCandidateKeys(allAttrs, fds);
     const nk = candidateKeys.length;
@@ -334,7 +334,6 @@ export function generateProblem(diff: Difficulty): Problem {
       candidateKeys.some(k => k.length < numAttrs) &&
       passesStructuralProfile(diff, allAttrs, fds, candidateKeys)
     ) {
-      console.log(candidateKeys)
       return { allAttrs, fds, candidateKeys };
     }
   }
