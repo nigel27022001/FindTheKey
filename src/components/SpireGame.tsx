@@ -357,11 +357,10 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
       // Delay damage to sync with projectile hitting
       setTimeout(() => {
         setActiveEnemy(prev => prev ? { ...prev, totalHealth: Math.max(0, newHp) } : prev);
-        spawnFloatingDamage(currentProblem.damage, false);
+        spawnFloatingDamage(weightedDamage, false);
         triggerShake("enemy");
       }, 450);
 
-      spawnFloatingDamage(weightedDamage, false);
       appendLog(`Solved! Dealt ${weightedDamage} damage.`);
 
       if (newHp > 0) {

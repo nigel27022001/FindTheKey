@@ -112,6 +112,17 @@ export function generateSpireMap(layers: number = 10, width: number = 5): SpireN
     map.push(layerNodes);
   }
 
+  // Randomly place rest nodes in the middle 3 layers of the map
+  const mid = Math.floor(layers / 2);
+  const midLayers = [mid - 1, mid, mid + 1].filter(l => l > 0 && l < layers - 2);
+  for (const l of midLayers) {
+    for (const node of map[l]) {
+      if (node.type !== "rest" && Math.random() < 0.2) {
+        node.type = "rest";
+      }
+    }
+  }
+
   // Generate valid paths
   for (let l = 0; l < layers - 1; l++) {
     const currentLayer = map[l];
