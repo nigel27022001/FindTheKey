@@ -14,17 +14,33 @@ export interface Problem {
   candidateKeys: string[][];
 }
 
+/** A - attrs, F - fd len, K - number of keys, KL - candidate key len */
 interface DifficultyConfig {
   minA: number; maxA: number;
   minF: number; maxF: number;
   minK: number; maxK: number;
+  minKL: number; maxKL: number;
+}
+
+interface FdConstraints {
+  minLHS: number;
+  maxLHS: number;
+  minRHS: number;
+  maxRHS: number;
+}
+
+export const FD_CONFIG: Record<Difficulty, FdConstraints> = {
+  easy: {minLHS: 1, maxLHS: 1, minRHS: 1, maxRHS: 2},
+  medium: {minLHS: 1, maxLHS: 2, minRHS: 1, maxRHS: 3},
+  hard: {minLHS: 1, maxLHS: 3, minRHS: 1, maxRHS: 3},
+  expert: {minLHS: 2, maxLHS: 4, minRHS: 1, maxRHS: 3},
 }
 
 export const DIFFICULTY_CONFIG: Record<Difficulty, DifficultyConfig> = {
-  easy:   { minA: 3, maxA: 4, minF: 2, maxF: 3, minK: 1, maxK: 1 },
-  medium: { minA: 4, maxA: 5, minF: 3, maxF: 4, minK: 1, maxK: 2 },
-  hard:   { minA: 5, maxA: 6, minF: 4, maxF: 6, minK: 2, maxK: 3 },
-  expert: { minA: 6, maxA: 7, minF: 5, maxF: 8, minK: 2, maxK: 3 },
+  easy:   { minA: 3, maxA: 4, minF: 2, maxF: 3, minK: 1, maxK: 1, minKL: 1, maxKL: 1},
+  medium: { minA: 4, maxA: 5, minF: 3, maxF: 4, minK: 1, maxK: 1, minKL: 1, maxKL: 2 },
+  hard:   { minA: 5, maxA: 6, minF: 4, maxF: 5, minK: 2, maxK: 3, minKL: 2, maxKL: 3 },
+  expert: { minA: 6, maxA: 7, minF: 5, maxF: 8, minK: 2, maxK: 3, minKL: 2, maxKL: 4 },
 };
 
 export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
@@ -49,26 +65,32 @@ const pick = <T>(arr: T[], k: number): T[] => shuffle(arr).slice(0, k);
 
 interface StructuralThreshold {
   minDerivationRounds: number;
-  minOverlapRatio: number;
+  minRedundantLHS: number
+  //minOverlapRatio: number;
   minRedundantFDs: number;
   minNearMisses: number;
   minAvgLhsSize: number;
+  keyInLHSratio: number; // refers to candidate key being directly derived from LHS
 }
 
 const STRUCTURAL_THRESHOLDS: Partial<Record<Difficulty, StructuralThreshold>> = {
   hard: {
-    minDerivationRounds: 2,
-    minOverlapRatio: 0.25,
+    minDerivationRounds: 3,
+    minRedundantLHS: 1,
+    //minOverlapRatio: 0.25,
     minRedundantFDs: 1,
     minNearMisses: 1,
     minAvgLhsSize: 1.4,
+    keyInLHSratio: 0.75
   },
   expert: {
     minDerivationRounds: 3,
-    minOverlapRatio: 0.3,
+    //minOverlapRatio: 0.3,
+    minRedundantLHS: 2,
     minRedundantFDs: 1,
     minNearMisses: 1,
     minAvgLhsSize: 1.8,
+    keyInLHSratio: 0.50
   },
 };
 
@@ -194,17 +216,20 @@ function passesStructuralProfile(
   if (!threshold) return true;
 
   const derivationRounds = maxKeyDerivationRounds(candidateKeys, fds);
-  const overlapRatio = lhsOverlapRatio(allAttrs, fds);
+  const redundantLHS = countRedundantLHS(fds);
+//  const overlapRatio = lhsOverlapRatio(allAttrs, fds);
   const redundantFDs = countRedundantFDs(fds);
-  const nearMisses = countNearMisses(allAttrs, fds, candidateKeys);
-  const avgLhsSize = averageLhsSize(fds);
+  const keyInLHSratio = getKeyInLHSratio(candidateKeys, fds)
+ // const nearMisses = countNearMisses(allAttrs, fds, candidateKeys);
+  //const avgLhsSize = averageLhsSize(fds);
+  // nearMisses >= threshold.minNearMisses &&
+  //avgLhsSize >= threshold.minAvgLhsSize
 
   return (
     derivationRounds >= threshold.minDerivationRounds &&
-    overlapRatio >= threshold.minOverlapRatio &&
+    redundantLHS >= threshold.minRedundantLHS &&
     redundantFDs >= threshold.minRedundantFDs &&
-    nearMisses >= threshold.minNearMisses &&
-    avgLhsSize >= threshold.minAvgLhsSize
+    keyInLHSratio <= threshold.keyInLHSratio
   );
 }
 
@@ -249,12 +274,20 @@ function buildFallbackProblem(diff: Difficulty): Problem {
   return { allAttrs, fds, candidateKeys: findAllCandidateKeys(allAttrs, fds) };
 }
 
+function getKeyInLHSratio(candidateKeys: string[][], fds: FD[]): number {
+  const lhsSignatures = new Set(fds.map(fd => keySignature(fd.lhs)));
+  const overlaps = candidateKeys.reduce((acc, key) => lhsSignatures.has(keySignature(key)) ? acc + 1 : acc, 0);
+  
+  return overlaps / candidateKeys.length
+}
+
 /**
  * Generate a random problem for the given difficulty.
  * Retries up to 3000 times until key-count and structural constraints are satisfied.
  */
 export function generateProblem(diff: Difficulty): Problem {
   const cfg = DIFFICULTY_CONFIG[diff];
+  const fdCfg = FD_CONFIG[diff];
 
   for (let attempt = 0; attempt < 3000; attempt++) {
     const numAttrs = randInt(cfg.minA, cfg.maxA);
@@ -264,25 +297,23 @@ export function generateProblem(diff: Difficulty): Problem {
     const seen = new Set<string>();
 
     for (let i = 0; i < numFDs * 3 && fds.length < numFDs; i++) {
-      const lhsSize =
-        diff === "easy"   ? 1 :
-        diff === "medium" ? randInt(1, 2) :
-                            randInt(1, Math.min(3, numAttrs - 1));
+      // Clamp maxLHS to numAttrs - 1 to always leave room for RHS
+      const lhsSize = randInt(
+        fdCfg.minLHS,
+        Math.min(fdCfg.maxLHS, numAttrs - 1)
+      );
 
-      const lhs       = pick(allAttrs, Math.min(lhsSize, numAttrs - 1)).sort();
+      const lhs       = pick(allAttrs, lhsSize).sort();
       const remaining = allAttrs.filter(a => !lhs.includes(a));
       if (!remaining.length) continue;
 
-      const rhsSize =
-        diff === "easy" ? randInt(1, 2) :
-                          randInt(1, Math.min(3, remaining.length));
-
+      // Clamp maxRHS to remaining.length so we never over-pick
+      const rhsSize = randInt(
+        fdCfg.minRHS,
+        Math.min(fdCfg.maxRHS, remaining.length)
+      );
 
       const rhs = pick(remaining, rhsSize).sort();
-      if (diff === "hard" || diff === "expert") {
-        if (lhs.length == 1 && rhs.length == 1) continue;
-      }
-
       const key = lhs.join("") + "->" + rhs.join("");
       if (!seen.has(key)) { seen.add(key); fds.push({ lhs, rhs }); }
     }
@@ -292,12 +323,18 @@ export function generateProblem(diff: Difficulty): Problem {
     const candidateKeys = findAllCandidateKeys(allAttrs, fds);
     const nk = candidateKeys.length;
 
+    const isAllKeyLengthValid = candidateKeys.reduce(
+      (acc, key) => acc && key.length >= cfg.minKL && key.length <= cfg.maxKL, true)
+
+    if (!isAllKeyLengthValid) continue
+  
     if (
       nk >= cfg.minK &&
       nk <= cfg.maxK &&
       candidateKeys.some(k => k.length < numAttrs) &&
       passesStructuralProfile(diff, allAttrs, fds, candidateKeys)
     ) {
+      console.log(candidateKeys)
       return { allAttrs, fds, candidateKeys };
     }
   }
