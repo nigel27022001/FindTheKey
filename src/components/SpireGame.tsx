@@ -73,6 +73,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
     if (!initialized.current) {
       setMap(generateSpireMap(15, 5));
       appendLog("Run started. Map generated.");
+      game.clearPotions();
       initialized.current = true;
     }
   }, []);
@@ -160,6 +161,8 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
               })
             )
           );
+
+          setCurrentNode(null);
         }
       } else if (node.type === "mystery") {
         const rand = Math.random();
@@ -217,6 +220,8 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
               })
             )
           );
+
+          setCurrentNode(null);
         }
       } else if (node.type === "rest") {
         setPlayerHealth(() => {
@@ -238,6 +243,8 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
             })
           )
         );
+
+        setCurrentNode(null);
       } else if (node.type === "shop") {
         appendLog(`Entered the Merchant's Shop.`);
         setCurrentNode(node);
@@ -363,7 +370,6 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
 
           setCurrentProblem(nextProb);
           setBattleTimer(nextProb.timer);
-          appendLog(`Enemy intent: ${nextProb.damage} dmg`);
           game.changeDifficulty(nextProb.difficulty);
         }, 600);
       } else {
@@ -374,20 +380,17 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
 
   useEffect(() => {
     if (activeEnemy && game.gameOver) {
-      setPlayerHealth(hp => hp - activeEnemy.Damage);
-      spawnFloatingDamage(activeEnemy.Damage, true);
-      appendLog("Wrong answer! You took " + activeEnemy.Damage + " damage. The enemy hits you for trying a faulty key!");
       // Enemy projectile themed to the enemy
       const theme = ENEMY_ATTACK_THEME[activeEnemy.name] ?? { emoji: "💥", label: "Attack" };
       spawnProjectile("enemy", theme.label, theme.emoji);
 
       setTimeout(() => {
-        setPlayerHealth(hp => hp - 15);
-        spawnFloatingDamage(15, true);
+        setPlayerHealth(hp => hp - activeEnemy.Damage);
+        spawnFloatingDamage(activeEnemy.Damage, true);
         triggerShake("player");
       }, 450);
 
-      appendLog("Wrong answer! You took 15 damage. The enemy hits you for trying a faulty key!");
+      appendLog("Wrong answer! You took " + activeEnemy.Damage + " damage. The enemy hits you for trying a faulty key!");
       game.dismissGameOver();
       setBattleTimer(currentProblem?.timer ?? 30);
     }
@@ -586,39 +589,40 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
       {/* BATTLE COLUMN */}
       <div className="flex-1 relative flex flex-col bg-stone-50 overflow-hidden h-full">
         {/* HEADER AREA */}
-        <div className="sticky top-0 z-20 flex justify-between items-center pointer-events-none px-4 py-3 bg-stone-50 border-b border-gray-200 shrink-0">
-          <div className="flex gap-3 items-center pointer-events-auto">
+        <div className="sticky top-0 z-20 pointer-events-none px-3 py-2 sm:px-4 sm:py-3 bg-stone-50 border-b border-gray-200 shrink-0">
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center">
+          <div className="flex flex-wrap gap-2 items-center pointer-events-auto">
             <button
               onClick={onBack}
-              className="px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-800 rounded-2xl shadow-sm border border-gray-200 transition-colors font-bold"
+              className="px-3 py-2 sm:px-4 sm:py-2.5 bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-800 rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 transition-colors font-bold text-xs sm:text-sm"
             >
               ← Back
             </button>
             <button
               onClick={() => setShowHelp(true)}
-              className="flex items-center gap-2 px-6 py-2.5 bg-white hover:bg-slate-50 text-blue-700 hover:text-blue-900 rounded-2xl shadow-sm border border-gray-200 transition-colors font-bold"
+              className="flex items-center gap-1.5 sm:gap-2 px-3 py-2 sm:px-6 sm:py-2.5 bg-white hover:bg-slate-50 text-blue-700 hover:text-blue-900 rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 transition-colors font-bold text-xs sm:text-sm"
             >
-              <CircleHelp size={20} /> How to Play
+              <CircleHelp size={16} className="sm:w-5 sm:h-5" /> How to Play
             </button>
           </div>
 
-          <div className="flex gap-4 sm:gap-6 px-6 py-2.5 items-center pointer-events-auto bg-white rounded-2xl shadow-sm border border-gray-200">
-            <div className={`flex items-center gap-2 px-4 py-1.5 rounded-full font-bold transition-all duration-300 ${battleTimer !== null && battleTimer <= 5
+          <div className="flex flex-wrap gap-2 sm:gap-4 px-3 py-2 sm:px-5 sm:py-2.5 items-center pointer-events-auto bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 w-full sm:w-auto">
+            <div className={`flex items-center gap-1.5 sm:gap-2 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full font-bold transition-all duration-300 ${battleTimer !== null && battleTimer <= 5
               ? 'bg-red-100 text-red-700 shadow-[0_0_15px_rgba(239,68,68,0.5)] border-2 border-red-500 animate-pulse'
               : battleTimer !== null && battleTimer <= 10
                 ? 'bg-orange-100 text-orange-700 border-2 border-orange-400'
                 : 'bg-slate-100 text-slate-700 border-2 border-slate-300'
               }`}>
-              <Timer size={20} className={battleTimer !== null && battleTimer <= 5 ? "animate-bounce" : ""} />
-              <span className="text-xl tabular-nums w-8 text-center">{battleTimer}</span>
+              <Timer size={16} className={`${battleTimer !== null && battleTimer <= 5 ? "animate-bounce" : ""} sm:w-5 sm:h-5`} />
+              <span className="text-base sm:text-xl tabular-nums w-7 sm:w-8 text-center">{battleTimer}</span>
             </div>
 
-            <div className="flex items-center gap-2 text-green-700 font-bold border-l border-gray-200 px-4 sm:px-6">
-              <Heart size={24} className="fill-green-500 text-green-600" />
-              <span className="text-lg">{playerHealth} / {playerMaxHealth}</span>
+            <div className="flex items-center gap-1.5 sm:gap-2 text-green-700 font-bold border-l border-gray-200 pl-3 sm:pl-4 md:pl-6">
+              <Heart size={18} className="fill-green-500 text-green-600 sm:w-6 sm:h-6" />
+              <span className="text-sm sm:text-lg whitespace-nowrap">{playerHealth} / {playerMaxHealth}</span>
             </div>
 
-            <div className="flex items-center gap-2 border-l border-gray-200 px-4 sm:px-6">
+            <div className="flex items-center gap-1.5 sm:gap-2 border-l border-gray-200 pl-3 sm:pl-4 md:pl-6">
               {Array.from({ length: 3 }).map((_, i) => {
                 let pType: "hint" | "closure" | "skip" | null = null;
                 if (i < game.hintsLeft) pType = "hint";
@@ -628,19 +632,19 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
                 return (
                   <div key={i} className="relative">
                     {pType === "hint" ? (
-                      <div onClick={() => setDiscardPrompt({ type: "hint", index: i })} className="w-8 h-8 rounded-full flex items-center justify-center bg-amber-50 border-2 border-amber-300 cursor-pointer hover:scale-110 transition-transform" title="Hint Scroll">
-                        <Scroll size={16} className="text-amber-600" fill="currentColor" />
+                      <div onClick={() => setDiscardPrompt({ type: "hint", index: i })} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center bg-amber-50 border-2 border-amber-300 cursor-pointer hover:scale-110 transition-transform" title="Hint Scroll">
+                        <Scroll size={14} className="text-amber-600 sm:w-4 sm:h-4" fill="currentColor" />
                       </div>
                     ) : pType === "closure" ? (
-                      <div onClick={() => setDiscardPrompt({ type: "closure", index: i })} className="w-8 h-8 rounded-full flex items-center justify-center bg-purple-50 border-2 border-purple-300 cursor-pointer hover:scale-110 transition-transform" title="Closure Potion">
-                        <FlaskConical size={16} className="text-purple-600" fill="currentColor" />
+                      <div onClick={() => setDiscardPrompt({ type: "closure", index: i })} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center bg-purple-50 border-2 border-purple-300 cursor-pointer hover:scale-110 transition-transform" title="Closure Potion">
+                        <FlaskConical size={14} className="text-purple-600 sm:w-4 sm:h-4" fill="currentColor" />
                       </div>
                     ) : pType === "skip" ? (
-                      <div onClick={() => setDiscardPrompt({ type: "skip", index: i })} className="w-8 h-8 rounded-full flex items-center justify-center bg-rose-50 border-2 border-rose-300 cursor-pointer hover:scale-110 transition-transform" title="Skip Potion">
-                        <FastForward size={16} className="text-rose-600" fill="currentColor" />
+                      <div onClick={() => setDiscardPrompt({ type: "skip", index: i })} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center bg-rose-50 border-2 border-rose-300 cursor-pointer hover:scale-110 transition-transform" title="Skip Potion">
+                        <FastForward size={14} className="text-rose-600 sm:w-4 sm:h-4" fill="currentColor" />
                       </div>
                     ) : (
-                      <div className="w-8 h-8 rounded-full border-2 border-dashed border-gray-300 bg-gray-50" title="Empty Slot"></div>
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-dashed border-gray-300 bg-gray-50" title="Empty Slot"></div>
                     )}
 
                     {discardPrompt?.index === i && (
@@ -665,10 +669,11 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
                 );
               })}
             </div>
-            <div className="flex items-center gap-2 text-yellow-600 font-bold">
-              <Coins size={24} className="fill-yellow-400 text-yellow-500" />
-              <span className="text-lg">{gold}</span>
+            <div className="flex items-center gap-1.5 sm:gap-2 text-yellow-600 font-bold border-l border-gray-200 pl-3 sm:pl-4">
+              <Coins size={18} className="fill-yellow-400 text-yellow-500 sm:w-6 sm:h-6" />
+              <span className="text-sm sm:text-lg whitespace-nowrap">{gold}</span>
             </div>
+          </div>
           </div>
         </div>
 
