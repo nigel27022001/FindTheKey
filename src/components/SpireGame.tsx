@@ -2,6 +2,7 @@ import type { FC } from "react";
 import { useState, useEffect, useRef } from "react";
 import { Bug, Ghost, Crown, Gem, CircleHelp, Tent, Timer, Rat, Droplet, Skull, Flame, Sword, Shield, Coins, Heart, Scroll, Store, FlaskConical, UserKey, FastForward } from "lucide-react";
 import { generateSpireMap, generateEnemy, getRandomEnemyProblem } from "../lib/spireMap";
+import * as sfx from "../lib/sfx";
 import { DIFF_TEXT } from "../lib/difficultyColors";
 import type { SpireNode, EnemyConfig } from "../lib/spireMap";
 import { useGameState } from "../hooks/useGameState";
@@ -82,6 +83,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
     if (currentNode?.id === node.id) return;
 
     if (node.status === "available" || node.status === "current") {
+      sfx.sfxMapSelect();
       appendLog(`Player entered ${node.type.toUpperCase()} (layer ${node.layer}).`);
 
       setCurrentNode(node);
@@ -105,6 +107,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
         };
 
         setActiveEnemy(enemyWithMax);
+        sfx.sfxEnemyAppear();
 
         const newProb = getRandomEnemyProblem(enemyWithMax);
 
@@ -118,6 +121,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
         game.changeDifficulty(newProb.difficulty);
         setBattleTimer(newProb.timer);
       } else if (node.type === "treasure") {
+        sfx.sfxTreasure();
         const rand = Math.random();
         let drops: { id: string, type: "hint" | "closure" | "skip" }[] = [];
         let shouldAutoComplete = true;
@@ -127,6 +131,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
           appendLog(`Treasure: Found a Skip Potion!`);
         } else if (rand < 0.5) {
           setGold(g => g + 100);
+          sfx.sfxGold();
           appendLog(`Treasure: Found a massive stash of coins! (+100 Gold)`);
         } else if (rand < 0.75) {
           setPlayerMaxHealth(max => {
@@ -165,6 +170,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
           setCurrentNode(null);
         }
       } else if (node.type === "mystery") {
+        sfx.sfxMystery();
         const rand = Math.random();
         let shouldAutoComplete = false;
         let drops: { id: string, type: "hint" | "closure" | "skip" }[] = [];
@@ -180,13 +186,16 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
           setPendingPotions(drops);
         } else if (rand < 0.4) {
           setPlayerHealth(hp => Math.min(playerMaxHealth, hp + 20));
+          sfx.sfxHeal();
           appendLog(`Mystery: Drank from a revitalizing spring. (+20 HP)`);
           shouldAutoComplete = true;
         } else if (rand < 0.6) {
           setPlayerHealth(hp => hp - 10);
+          sfx.sfxTrap();
           appendLog(`Mystery: Fell into a spiked trap! (-10 HP)`);
           shouldAutoComplete = true;
         } else if (rand < 0.8) {
+          sfx.sfxEnemyAppear();
           appendLog(`Mystery: It's an ambush!`);
           const enemy = generateEnemy("minion");
           const enemyWithMax = { ...enemy, maxHealth: enemy.totalHealth };
@@ -201,6 +210,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
           game.changeDifficulty(newProb.difficulty);
           setBattleTimer(newProb.timer);
         } else {
+          sfx.sfxShop();
           appendLog(`Mystery: Stumbled upon a hidden Merchant's Tent!`);
           setCurrentNode({ ...node, type: "shop" });
           setActiveEnemy(null);
@@ -224,6 +234,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
           setCurrentNode(null);
         }
       } else if (node.type === "rest") {
+        sfx.sfxHeal();
         setPlayerHealth(() => {
           appendLog(`Rested at the Checkpoint. Fully Healed to ${playerMaxHealth} HP.`);
           return playerMaxHealth;
@@ -246,6 +257,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
 
         setCurrentNode(null);
       } else if (node.type === "shop") {
+        sfx.sfxShop();
         appendLog(`Entered the Merchant's Shop.`);
         setCurrentNode(node);
         setActiveEnemy(null);
@@ -261,6 +273,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
     if (activeEnemy) {
       const droppedGold = activeEnemy.type === "boss" ? 100 : activeEnemy.type === "elite" ? 40 : 15;
       setGold(g => g + droppedGold);
+      sfx.sfxGold();
       appendLog(`${activeEnemy.name} defeated! Dropped ${droppedGold} gold.`);
     } else {
       appendLog(`${currentNode.type.toUpperCase()} cleared.`);
@@ -295,6 +308,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
     if (showVictory) return;
 
     setShowVictory(true);
+    sfx.sfxVictory();
     window.setTimeout(() => {
       setShowVictory(false);
       handleFightComplete();
@@ -353,12 +367,14 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
       // Rune projectile with selected attrs (use ref since selected is already cleared)
       const runeLabel = lastSelectedRef.current.join(",");
       spawnProjectile("rune", runeLabel, "✦");
+      sfx.sfxRuneLaunch();
 
       // Delay damage to sync with projectile hitting
       setTimeout(() => {
         setActiveEnemy(prev => prev ? { ...prev, totalHealth: Math.max(0, newHp) } : prev);
         spawnFloatingDamage(weightedDamage, false);
         triggerShake("enemy");
+        sfx.sfxRuneHit();
       }, 450);
 
       appendLog(`Solved! Dealt ${weightedDamage} damage.`);
@@ -382,13 +398,16 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
       // Enemy projectile themed to the enemy
       const theme = ENEMY_ATTACK_THEME[activeEnemy.name] ?? { emoji: "💥", label: "Attack" };
       spawnProjectile("enemy", theme.label, theme.emoji);
+      sfx.sfxEnemyLaunch();
 
       setTimeout(() => {
         setPlayerHealth(hp => hp - activeEnemy.Damage);
         spawnFloatingDamage(activeEnemy.Damage, true);
         triggerShake("player");
+        sfx.sfxPlayerHit();
       }, 450);
 
+      sfx.sfxWrong();
       appendLog("Wrong answer! You took " + activeEnemy.Damage + " damage. The enemy hits you for trying a faulty key!");
       game.dismissGameOver();
       setBattleTimer(currentProblem?.timer ?? 30);
@@ -399,6 +418,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
   useEffect(() => {
     if (activeEnemy && activeEnemy.totalHealth > 0 && !showVictory && battleTimer !== null && battleTimer > 0) {
 
+      if (battleTimer <= 5) sfx.sfxTimerTick();
       const timer = setTimeout(() => {
         setBattleTimer(t => (t ? t - 1 : 0));
       }, 1000);
@@ -407,11 +427,17 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
     } else if (battleTimer === 0 && activeEnemy && activeEnemy.totalHealth > 0 && currentProblem) {
       setPlayerHealth(hp => hp - activeEnemy.Damage);
       spawnFloatingDamage(activeEnemy.Damage, true);
+      sfx.sfxPlayerHit();
       appendLog("Time ran out! The enemy strikes! You took " + activeEnemy.Damage + " damage.");
 
       setBattleTimer(currentProblem.timer);
     }
   }, [activeEnemy, showVictory, battleTimer]);
+  // Game over sound
+  useEffect(() => {
+    if (playerHealth <= 0) sfx.sfxGameOver();
+  }, [playerHealth <= 0]);
+
   const colorizeLog = (text: string) => {
     const rules: { pattern: RegExp, className: string }[] = [
       // Damage numbers: "10 dmg", "15 damage", "-10 HP"
@@ -785,6 +811,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
                       if (gold >= 30 && game.hintsLeft + game.closureUses + game.skipUses < 3) {
                         setGold(g => g - 30);
                         game.earnHint();
+                        sfx.sfxPurchase();
                         appendLog(`Bought a Hint Potion (-30 Gold)`);
                       }
                     }}
@@ -806,6 +833,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
                       if (gold >= 40 && game.hintsLeft + game.closureUses + game.skipUses < 3) {
                         setGold(g => g - 40);
                         game.useClosurePotion();
+                        sfx.sfxPurchase();
                         appendLog(`Bought a Closure Potion (-40 Gold)`);
                       }
                     }}
@@ -827,6 +855,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
                       if (gold >= 100 && game.hintsLeft + game.closureUses + game.skipUses < 3) {
                         setGold(g => g - 100);
                         game.earnSkipPotion();
+                        sfx.sfxPurchase();
                         appendLog(`Bought a Skip Potion (-100 Gold)`);
                       }
                     }}
@@ -958,7 +987,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
                     problem={game.problem}
                     selected={game.selected}
                     allSolved={game.allSolved}
-                    onToggleAttr={game.toggleAttr}
+                    onToggleAttr={(a: string) => { sfx.sfxAttrSelect(); game.toggleAttr(a); }}
                     game={game}
                   />
 
@@ -974,10 +1003,10 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
                   />
 
                   <ActionBar
-                    onSubmit={game.submitAnswer}
-                    onHint={game.showHint}
-                    onClear={game.clearSelection}
-                    onSkip={game.consumeSkipPotion}
+                    onSubmit={() => { sfx.sfxClick(); game.submitAnswer(); }}
+                    onHint={() => { sfx.sfxPotion(); game.showHint(); }}
+                    onClear={() => { sfx.sfxClick(); game.clearSelection(); }}
+                    onSkip={() => { sfx.sfxPotion(); game.consumeSkipPotion(); }}
                     onNext={undefined}
                     hintsLeft={game.hintsLeft}
                     skipUses={game.skipUses}
