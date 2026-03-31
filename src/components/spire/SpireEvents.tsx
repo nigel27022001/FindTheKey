@@ -143,11 +143,9 @@ export function LootView({
                   if (potion.type === "closure") game.useClosurePotion();
                   if (potion.type === "skip") game.earnSkipPotion();
 
-                  setPendingPotions(prev => {
-                    const next = prev.filter(p => p.id !== potion.id);
-                    if (next.length === 0) handleFightComplete();
-                    return next;
-                  });
+                  const nextPotions = pendingPotions.filter(p => p.id !== potion.id);
+                  setPendingPotions(nextPotions);
+                  if (nextPotions.length === 0) handleFightComplete();
                 }
               }}
               className="flex-1 min-w-[120px] bg-slate-50 border-2 border-slate-200 rounded-xl p-4 flex flex-col items-center gap-2 hover:bg-white hover:border-blue-400 hover:shadow-md transition-all active:scale-95 group"
