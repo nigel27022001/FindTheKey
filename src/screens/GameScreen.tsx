@@ -26,8 +26,8 @@ export const GameScreen: FC<GameScreenProps> = ({ game, onGoToMenu }) => {
   const {
     score, streak, round, solved, total,
     difficulty, problem, selected, foundKeys, hintsLeft,
-    feedback, allSolved, newKey, toast, gameOver,
-    changeDifficulty, toggleAttr, clearSelection, submitAnswer, showHint, loadProblem,
+    feedback, allSolved, problemSolved, newKey, toast, gameOver,
+    changeDifficulty, toggleAttr, clearSelection, submitAnswer, showHint, nextProblem,
     getHighlightedFDs,
   } = game;
 
@@ -86,7 +86,7 @@ export const GameScreen: FC<GameScreenProps> = ({ game, onGoToMenu }) => {
 
           {/* Logo + nav */}
           <div>
-            <div className="text-lg font-bold text-gray-700 mb-2">🔑 Find the Key</div>
+            <div className="text-lg font-bold text-gray-700 mb-2">Practice</div>
             <DiffBadge diff={difficulty} />
             <button
               onClick={onGoToMenu}
@@ -139,6 +139,7 @@ export const GameScreen: FC<GameScreenProps> = ({ game, onGoToMenu }) => {
                 selected={selected}
                 allSolved={allSolved}
                 onToggleAttr={toggleAttr}
+                game={game}
               />
 
               <FDPanel
@@ -150,9 +151,11 @@ export const GameScreen: FC<GameScreenProps> = ({ game, onGoToMenu }) => {
                 onSubmit={submitAnswer}
                 onHint={showHint}
                 onClear={clearSelection}
-                onNext={() => loadProblem()}
+                onNext={nextProblem}
                 hintsLeft={hintsLeft}
+                problemSolved={problemSolved}
                 allSolved={allSolved}
+                gameMode={game.gameMode}
               />
 
               {feedback && (

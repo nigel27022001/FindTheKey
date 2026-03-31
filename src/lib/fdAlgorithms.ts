@@ -9,7 +9,7 @@ export interface FD {
   rhs: string[];
 }
 
-/** Compute the attribute closure X⁺ under a set of functional dependencies. */
+/** Compute the attribute closure X⁺ under a set of functional dependencies. Algorithm 1*/
 export function computeClosure(attrs: string[], fds: FD[]): Set<string> {
   const plus = new Set(attrs);
   let changed = true;

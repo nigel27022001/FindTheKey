@@ -8,8 +8,9 @@ import type { FC } from "react";
 import { useGameState }  from "./hooks/useGameState";
 import { StartScreen }   from "./screens/StartScreen";
 import { GameScreen }    from "./screens/GameScreen";
+import { SpireGame }     from "./components/SpireGame";
 
-type Screen = "start" | "game";
+type Screen = "start" | "game" | "spire";
 
 const App: FC = () => {
   const [screen, setScreen] = useState<Screen>("start");
@@ -27,9 +28,23 @@ const App: FC = () => {
         difficulty={game.difficulty}
         onSelectDifficulty={game.changeDifficulty}
         onStart={() => {
+          game.setGameMode("practice");
           game.loadProblem(game.difficulty);
           setScreen("game");
         }}
+        onStartSpire={() => {
+          game.setGameMode("spire");
+          setScreen("spire");
+        }}
+      />
+    );
+  }
+
+  if (screen === "spire") {
+    return (
+      <SpireGame 
+        onBack={() => setScreen("start")}
+        game={game}
       />
     );
   }

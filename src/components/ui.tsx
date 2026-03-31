@@ -42,11 +42,11 @@ export const AttrChip: FC<AttrChipProps> = ({ attr, selected, onClick, disabled 
     onClick={onClick}
     disabled={disabled}
     className={[
-      "inline-block px-5 py-2 m-1 rounded-lg text-lg font-mono font-semibold transition-all duration-150",
+      "inline-block px-5 py-2 m-1 rounded-sm text-lg font-mono font-bold transition-all duration-150 tracking-wider shadow border-b-4",
       selected
-        ? "bg-green-100 border-2 border-green-500 text-green-800 shadow-sm"
-        : "bg-gray-100 border border-gray-300 text-gray-700 hover:border-green-400 hover:text-green-700 hover:bg-green-50",
-      disabled ? "cursor-default opacity-50" : "cursor-pointer active:scale-95",
+        ? "bg-amber-100 border-amber-500 text-amber-900 border-x-2 border-t-2 opacity-90 translate-y-1"
+        : "bg-amber-200 border-amber-900/60 text-amber-950 border-x-2 border-t-2 hover:bg-amber-100 hover:border-amber-700 active:translate-y-1 active:border-b-2",
+      disabled ? "cursor-not-allowed opacity-50 grayscale" : "cursor-pointer",
     ].join(" ")}
   >
     {attr}
@@ -57,44 +57,46 @@ export const AttrChip: FC<AttrChipProps> = ({ attr, selected, onClick, disabled 
 
 export const FDRow: FC<{ fd: FD; highlighted: boolean }> = ({ fd, highlighted }) => (
   <div className={[
-    "flex items-center gap-3 px-4 py-3 rounded-lg mb-2 border transition-all duration-150",
+    "flex items-center gap-4 px-5 py-4 mb-3 border-2 transition-all duration-300 transform",
     highlighted
-      ? "bg-amber-50 border-amber-300 shadow-sm"
-      : "bg-gray-50 border-gray-200",
+      ? "bg-amber-100 border-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.3)] scale-[1.02] rounded-md"
+      : "bg-slate-800 border-slate-700 shadow-inner rounded opacity-90",
   ].join(" ")}>
-    <span className="text-blue-600 font-bold font-mono text-lg">{fd.lhs.join(", ")}</span>
-    <span className="text-gray-400 text-xl">→</span>
-    <span className="text-emerald-600 font-bold font-mono text-lg">{fd.rhs.join(", ")}</span>
+    <span className={highlighted ? "text-amber-900 font-extrabold font-mono text-xl" : "text-sky-300 font-bold font-mono text-lg"}>{fd.lhs.join(", ")}</span>
+    <span className="text-slate-400 text-2xl font-bold">→</span>
+    <span className={highlighted ? "text-amber-700 font-extrabold font-mono text-xl" : "text-emerald-300 font-bold font-mono text-lg"}>{fd.rhs.join(", ")}</span>
   </div>
 );
 
 // ── Feedback ──────────────────────────────────────────────────────────────────
 
-const FEEDBACK_META: Record<FeedbackType, { cls: string; emoji: string }> = {
-  correct: { cls: "bg-green-50 border-green-400 text-green-800",   emoji: "✅" },
-  wrong:   { cls: "bg-red-50   border-red-400   text-red-800",     emoji: "❌" },
-  hint:    { cls: "bg-amber-50 border-amber-400 text-amber-800",   emoji: "💡" },
-  info:    { cls: "bg-blue-50  border-blue-400  text-blue-800",    emoji: "ℹ️" },
+const FEEDBACK_META: Record<FeedbackType, { cls: string; darkCls: string; emoji: string }> = {
+  correct: { cls: "bg-emerald-900/10 border-emerald-500/50 text-emerald-900", darkCls: "bg-emerald-900/40 border-emerald-400 text-emerald-100", emoji: "✨" },
+  wrong:   { cls: "bg-rose-900/10   border-rose-500/50   text-rose-900",     darkCls: "bg-rose-900/40 border-rose-400 text-rose-100", emoji: "🩸" },
+  hint:    { cls: "bg-amber-900/10 border-amber-500/50 text-amber-900",   darkCls: "bg-amber-900/50 border-amber-400 text-amber-100", emoji: "📜" },
+  info:    { cls: "bg-sky-900/10  border-sky-500/50  text-sky-900",    darkCls: "bg-sky-900/40 border-sky-400 text-sky-100", emoji: "👁️" },
 };
 
 interface FeedbackProps {
   type:      FeedbackType;
   title:     string;
   children?: ReactNode;
+  dark?:     boolean;
 }
 
-export const Feedback: FC<FeedbackProps> = ({ type, title, children }) => {
+export const Feedback: FC<FeedbackProps> = ({ type, title, children, dark }) => {
   if (!title && !children) return null;
-  const { cls, emoji } = FEEDBACK_META[type];
+  const { cls, darkCls, emoji } = FEEDBACK_META[type];
+  const activeCls = dark ? darkCls : cls;
   return (
-    <div className={`${cls} border-2 rounded-xl px-5 py-4 mt-3 leading-relaxed animate-fade-up`}>
+    <div className={`${activeCls} border-l-4 rounded-r-md px-6 py-4 mt-4 leading-relaxed animate-fade-up shadow-sm`}>
       {title && (
-        <div className="font-bold text-lg mb-1.5 flex items-center gap-2">
+        <div className="font-bold text-lg mb-2 flex items-center gap-3 font-serif tracking-wide border-b border-black/10 pb-1 inline-flex">
           <span>{emoji}</span>
           <span>{title}</span>
         </div>
       )}
-      {children && <div className="text-base opacity-85 ml-8">{children}</div>}
+      {children && <div className="text-base opacity-90">{children}</div>}
     </div>
   );
 };
@@ -103,10 +105,10 @@ export const Feedback: FC<FeedbackProps> = ({ type, title, children }) => {
 
 export const KeyBadge: FC<{ k: string[]; isNew?: boolean }> = ({ k, isNew }) => (
   <span className={[
-    "inline-block font-mono text-base px-3.5 py-1 rounded-lg m-1 border-2 transition-all duration-200 font-semibold",
+    "inline-block font-mono text-lg px-4 py-1.5 rounded-sm m-1.5 border-t-2 border-l-2 border-b-4 border-r-2 transition-all duration-300 font-black tracking-wide",
     isNew
-      ? "bg-green-100 border-green-500 text-green-800 shadow-sm"
-      : "bg-gray-100 border-gray-300 text-gray-700",
+      ? "bg-amber-100 border-amber-500 text-amber-900 shadow-[0_0_10px_rgba(245,158,11,0.5)] animate-bounce"
+      : "bg-slate-700 border-slate-900 text-slate-200 opacity-90",
   ].join(" ")}>
     {"{"}{k.join(", ")}{"}"}
   </span>
@@ -117,9 +119,9 @@ export const KeyBadge: FC<{ k: string[]; isNew?: boolean }> = ({ k, isNew }) => 
 export const Toast: FC<{ toast: { title: string; msg: string } | null }> = ({ toast }) => {
   if (!toast) return null;
   return (
-    <div className="fixed top-5 right-5 z-50 bg-white border-2 border-green-400 rounded-xl px-5 py-3.5 shadow-xl max-w-xs animate-fade-up">
-      <div className="font-bold text-base text-green-700 mb-0.5">🔥 {toast.title}</div>
-      <div className="text-sm text-gray-500">{toast.msg}</div>
+    <div className="fixed top-5 right-5 z-50 bg-slate-900 text-slate-100 border-2 border-amber-500 rounded-sm px-6 py-4 shadow-[0_0_15px_rgba(245,158,11,0.3)] max-w-sm animate-fade-up font-serif">
+      <div className="font-bold text-xl text-amber-400 mb-1">{toast.title}</div>
+      <div className="text-sm opacity-90">{toast.msg}</div>
     </div>
   );
 };
@@ -127,7 +129,7 @@ export const Toast: FC<{ toast: { title: string; msg: string } | null }> = ({ to
 // ── SectionLabel ──────────────────────────────────────────────────────────────
 
 export const SectionLabel: FC<{ children: ReactNode }> = ({ children }) => (
-  <div className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">
-    {children}
+  <div className="text-sm font-black uppercase tracking-[0.2em] text-slate-800 mb-4 border-b-2 border-slate-300 pb-1">
+    ★ {children} ★
   </div>
 );

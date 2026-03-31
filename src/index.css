@@ -18,3 +18,52 @@
 .animate-fade-up {
   animation: fadeUp 0.25s ease both;
 }
+
+@keyframes floatDmg {
+  0% { opacity: 1; transform: scale(1) translateY(0); }
+  50% { transform: scale(1.5) translateY(-20px); }
+  100% { opacity: 0; transform: scale(1) translateY(-40px); }
+}
+
+.animate-float-dmg {
+  animation: floatDmg 1s ease-out forwards;
+}
+
+/* Player rune projectile — flies upward */
+@keyframes runeUp {
+  0%   { opacity: 0; transform: translateY(0) scale(0.8) rotate(0deg); }
+  15%  { opacity: 1; transform: translateY(-30px) scale(1.8) rotate(15deg); }
+  85%  { opacity: 1; transform: translateY(-280px) scale(1.6) rotate(-10deg); }
+  100% { opacity: 0; transform: translateY(-320px) scale(2.2) rotate(0deg); }
+}
+
+.animate-rune-up {
+  animation: runeUp 0.7s ease-in-out forwards;
+}
+
+/* Enemy projectile — flies downward */
+@keyframes attackDown {
+  0%   { opacity: 0; transform: translateY(0) scale(0.8); }
+  15%  { opacity: 1; transform: translateY(30px) scale(1.8); }
+  85%  { opacity: 1; transform: translateY(280px) scale(1.6); }
+  100% { opacity: 0; transform: translateY(320px) scale(2.2); }
+}
+
+.animate-attack-down {
+  animation: attackDown 0.7s ease-in-out forwards;
+}
+
+/* Hit shake */
+@keyframes hitShake {
+  0%, 100% { transform: translateX(0); }
+  15%  { transform: translateX(-10px) rotate(-3deg); }
+  30%  { transform: translateX(8px) rotate(2.5deg); }
+  45%  { transform: translateX(-6px) rotate(-1.5deg); }
+  60%  { transform: translateX(5px) rotate(1deg); }
+  75%  { transform: translateX(-3px); }
+  90%  { transform: translateX(2px); }
+}
+
+.animate-hit-shake {
+  animation: hitShake 0.5s ease-out;
+}

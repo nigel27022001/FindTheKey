@@ -18,18 +18,18 @@ export const FoundKeysPanel: FC<FoundKeysPanelProps> = ({ foundKeys, totalKeys, 
   const pct = Math.round((foundKeys.length / totalKeys) * 100);
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-6 mt-3 shadow-sm">
-      <SectionLabel>Keys found — {foundKeys.length}/{totalKeys}</SectionLabel>
+    <div className="bg-slate-300/80 border-2 border-slate-400 rounded-xl p-6 mt-3 shadow-md relative overflow-hidden">
+      <SectionLabel>Forged Keys — {foundKeys.length}/{totalKeys}</SectionLabel>
 
-      <div className="flex flex-wrap mb-3">
+      <div className="flex flex-wrap mb-4 relative z-10">
         {foundKeys.map((k, i) => (
           <KeyBadge key={i} k={k} isNew={newKey !== null && arraysEqual(k, newKey)} />
         ))}
       </div>
 
-      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+      <div className="h-2.5 bg-slate-800 rounded-full overflow-hidden shadow-inner relative z-10">
         <div
-          className="h-full bg-green-500 rounded-full transition-all duration-500"
+          className="h-full bg-amber-500 rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(245,158,11,0.8)]"
           style={{ width: `${pct}%` }}
         />
       </div>
