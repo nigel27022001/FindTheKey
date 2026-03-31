@@ -7,7 +7,10 @@ let ctx: AudioContext | null = null;
 let _muted = false;
 
 export function isMuted() { return _muted; }
-export function setMuted(m: boolean) { _muted = m; }
+export function setMuted(m: boolean) {
+  _muted = m;
+  if (bossBgm) bossBgm.volume = m ? 0 : 0.35;
+}
 
 function getCtx(): AudioContext {
   if (!ctx) ctx = new AudioContext();
@@ -432,19 +435,21 @@ export function sfxCorrect() {
    ═══════════════════════════════════════════ */
 
 let bossBgm: HTMLAudioElement | null = null;
+let _bossPlaying = false;
 
 /** Start boss BGM — loops until stopped */
 export function playBossBgm() {
-  if (_muted) return;
+  _bossPlaying = true;
   if (bossBgm) { bossBgm.pause(); bossBgm = null; }
   bossBgm = new Audio("/bgm-boss.mp3");
   bossBgm.loop = true;
-  bossBgm.volume = 0.35;
+  bossBgm.volume = _muted ? 0 : 0.35;
   bossBgm.play().catch(() => {});
 }
 
 /** Stop boss BGM with a short fade-out */
 export function stopBossBgm() {
+  _bossPlaying = false;
   if (!bossBgm) return;
   const audio = bossBgm;
   bossBgm = null;

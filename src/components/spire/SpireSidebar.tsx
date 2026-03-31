@@ -93,7 +93,7 @@ export function SpireSidebar({
             </div>
           </>
         ) : (
-          <div className="text-gray-400 text-sm italic text-center pt-8">No enemy</div>
+          <div className="pt-8" />
         )}
       </div>
 

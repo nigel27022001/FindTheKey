@@ -49,7 +49,6 @@ export function SpireTopBar({
               const next = !muted;
               setMuted(next);
               sfx.setMuted(next);
-              if (next) sfx.stopBossBgm();
             }}
             className="px-3 py-2 sm:px-4 sm:py-2.5 bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-800 rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 transition-colors"
             title={muted ? "Sound Off" : "Sound On"}
