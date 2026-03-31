@@ -220,7 +220,20 @@ export function generateEnemy(type: "minion" | "elite" | "boss"): EnemyConfig {
 }
 
 export function getRandomEnemyProblem(enemy: EnemyConfig): { difficulty: Difficulty, damage: number, timer: number } {
-  const randDiff = enemy.problems[Math.floor(Math.random() * enemy.problems.length)] as Difficulty;
+  let randDiff: Difficulty;
+  const rand = Math.random();
+
+  if (enemy.type === "minion") {
+    // 60% chance of easy, 40% chance of medium
+    randDiff = rand < 0.60 ? "easy" : "medium";
+  } else if (enemy.type === "elite") {
+    // 70% chance of medium, 30% chance of hard
+    randDiff = rand < 0.70 ? "medium" : "hard";
+  } else {
+    // 70% chance of hard, 30% chance of expert
+    randDiff = rand < 0.70 ? "hard" : "expert";
+  }
+
   const details = (EnemyProblem as any)[enemy.type][randDiff];
   return { difficulty: randDiff, damage: details.playerDamage, timer: details.timer };
 }
