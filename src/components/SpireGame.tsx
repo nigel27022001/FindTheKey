@@ -1,6 +1,6 @@
 import type { FC } from "react";
 import { useState, useEffect, useRef } from "react";
-import { Bug, Ghost, Crown, Gem, CircleHelp, Tent, Timer, Rat, Droplet, Skull, Flame, Sword, Shield, Coins, Heart, Scroll, Store, FlaskConical, UserKey, FastForward } from "lucide-react";
+import { Bug, Ghost, Crown, Gem, CircleHelp, Tent, Timer, Rat, Droplet, Skull, Flame, Sword, Shield, Coins, Heart, Scroll, Store, FlaskConical, UserKey, FastForward, Volume2, VolumeX } from "lucide-react";
 import { generateSpireMap, generateEnemy, getRandomEnemyProblem } from "../lib/spireMap";
 import * as sfx from "../lib/sfx";
 import { DIFF_TEXT } from "../lib/difficultyColors";
@@ -38,6 +38,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
   const [enemyShake, setEnemyShake] = useState(false);
   const [projectiles, setProjectiles] = useState<{ id: number, type: "rune" | "enemy", label: string, emoji: string }[]>([]);
 
+  const [muted, setMuted] = useState(false);
   const [battleLog, setBattleLog] = useState<string[]>([]);
   const [battleTimer, setBattleTimer] = useState<number | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
@@ -107,6 +108,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
         };
 
         setActiveEnemy(enemyWithMax);
+        if (node.type === "boss") sfx.playBossBgm();
         sfx.sfxEnemyAppear();
 
         const newProb = getRandomEnemyProblem(enemyWithMax);
@@ -308,6 +310,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
     if (showVictory) return;
 
     setShowVictory(true);
+    sfx.stopBossBgm();
     sfx.sfxVictory();
     window.setTimeout(() => {
       setShowVictory(false);
@@ -435,7 +438,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
   }, [activeEnemy, showVictory, battleTimer]);
   // Game over sound
   useEffect(() => {
-    if (playerHealth <= 0) sfx.sfxGameOver();
+    if (playerHealth <= 0) { sfx.stopBossBgm(); sfx.sfxGameOver(); }
   }, [playerHealth <= 0]);
 
   const colorizeLog = (text: string) => {
@@ -584,7 +587,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
               </div>
             </>
           ) : (
-            <div className="text-gray-400 text-sm italic text-center pt-8">No enemy</div>
+            <div className="pt-8" />
           )}
         </div>
 
@@ -628,6 +631,18 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
               className="flex items-center gap-1.5 sm:gap-2 px-3 py-2 sm:px-6 sm:py-2.5 bg-white hover:bg-slate-50 text-blue-700 hover:text-blue-900 rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 transition-colors font-bold text-xs sm:text-sm"
             >
               <CircleHelp size={16} className="sm:w-5 sm:h-5" /> How to Play
+            </button>
+            <button
+              onClick={() => {
+                const next = !muted;
+                setMuted(next);
+                sfx.setMuted(next);
+                if (next) sfx.stopBossBgm();
+              }}
+              className="px-3 py-2 sm:px-4 sm:py-2.5 bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-800 rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 transition-colors"
+              title={muted ? "Sound Off" : "Sound On"}
+            >
+              {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
             </button>
           </div>
 
