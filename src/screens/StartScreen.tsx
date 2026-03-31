@@ -4,7 +4,10 @@
  */
 
 import type { FC } from "react";
+import { useState, useEffect } from "react";
 import { Castle, Key, ArrowRight, Swords } from "lucide-react";
+import { getLeaderboard, formatTimeMs } from "../lib/leaderboardUtils";
+import type { LeaderboardEntry } from "../lib/leaderboardUtils";
 import type { Difficulty } from "../lib/problemGenerator";
 import { DIFFICULTY_LABELS } from "../lib/problemGenerator";
 import { DIFF_SELECTED_BTN, DIFF_TEXT } from "../lib/difficultyColors";
@@ -16,9 +19,16 @@ interface StartScreenProps {
   onStartSpire?:       () => void;
 }
 
-export const StartScreen: FC<StartScreenProps> = ({ difficulty, onSelectDifficulty, onStart, onStartSpire }) => (
+export const StartScreen: FC<StartScreenProps> = ({ difficulty, onSelectDifficulty, onStart, onStartSpire }) => {
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+
+  useEffect(() => {
+    setLeaderboard(getLeaderboard());
+  }, []);
+
+  return (
   <div className="min-h-screen bg-[#f0eeeb] flex items-center justify-center px-4">
-    <div className="w-full max-w-md font-mono">
+    <div className="w-full max-w-md font-mono py-12">
 
       {/* Title */}
       <div className="text-center mb-8">
@@ -48,6 +58,26 @@ export const StartScreen: FC<StartScreenProps> = ({ difficulty, onSelectDifficul
           </button>
         )}
       </div>
+
+      {leaderboard.length > 0 && (
+        <div className="bg-white border-2 border-amber-200 rounded-2xl p-6 mb-8 shadow-sm">
+          <div className="text-xs font-bold uppercase tracking-widest text-amber-600 mb-4 flex items-center justify-between">
+            <span>Hall of Legends</span>
+            <span>Top Times</span>
+          </div>
+          <div className="flex flex-col gap-2">
+            {leaderboard.map((entry, i) => (
+              <div key={entry.id} className="flex items-center justify-between bg-amber-50 rounded-xl px-4 py-3 border border-amber-100/50">
+                <div className="flex items-center gap-3">
+                  <div className="text-amber-700/50 font-black text-lg w-6">#{i + 1}</div>
+                  <div className="font-bold text-slate-800">{entry.playerName}</div>
+                </div>
+                <div className="font-mono font-black text-amber-600">{formatTimeMs(entry.timeMs)}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex items-center gap-4 mb-8">
         <div className="flex-1 h-px bg-gray-300"></div>
@@ -95,4 +125,5 @@ export const StartScreen: FC<StartScreenProps> = ({ difficulty, onSelectDifficul
 
     </div>
   </div>
-);
+  );
+};

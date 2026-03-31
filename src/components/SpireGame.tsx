@@ -16,7 +16,7 @@ import { SpireLog } from "./spire/SpireLog";
 import { SpireMap } from "./spire/SpireMap";
 import { SpireSidebar } from "./spire/SpireSidebar";
 import { SpireTopBar } from "./spire/SpireTopBar";
-import { ShopView, LootView, GameOverModal, VictoryOverlay, HowToPlayModal, EffectOverlay } from "./spire/SpireEvents";
+import { ShopView, LootView, GameOverModal, VictoryOverlay, HowToPlayModal, EffectOverlay, SpireVictoryModal } from "./spire/SpireEvents";
 import type { OverlayEffect } from "./spire/SpireEvents";
 
 interface SpireGameProps {
@@ -48,6 +48,9 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
   const [battleLog, setBattleLog] = useState<string[]>([]);
   const [battleTimer, setBattleTimer] = useState<number | null>(null);
 
+  const [startTime, setStartTime] = useState<number>(0);
+  const [spireCompleteTime, setSpireCompleteTime] = useState<number | null>(null);
+
   const appendLog = (message: string) => {
     const ts = new Date().toLocaleTimeString([], {
       hour: "2-digit",
@@ -74,6 +77,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
       setMap(generateSpireMap(15, 5));
       appendLog("Run started. Map generated.");
       game.clearPotions();
+      setStartTime(Date.now());
       initialized.current = true;
     }
   }, []);
@@ -291,6 +295,10 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
       setGold(g => g + droppedGold);
       sfx.sfxGold();
       appendLog(`${activeEnemy.name} defeated! Dropped ${droppedGold} gold.`);
+
+      if (activeEnemy.type === "boss" && currentNode.layer === map.length - 1) {
+        setSpireCompleteTime(Date.now() - startTime);
+      }
     } else {
       appendLog(`${currentNode.type.toUpperCase()} cleared.`);
     }
@@ -461,6 +469,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
       <Toast toast={game.toast} />
 
       {playerHealth <= 0 && <GameOverModal onBack={onBack} />}
+      {spireCompleteTime !== null && <SpireVictoryModal timeMs={spireCompleteTime} onBack={onBack} />}
 
       <SpireSidebar
         projectiles={projectiles}

@@ -3,6 +3,7 @@ import { Store, Scroll, FlaskConical, FastForward, Coins, Gem, CircleHelp, Bug, 
 import type { useGameState } from "../../hooks/useGameState";
 import * as sfx from "../../lib/sfx";
 import type { EnemyConfig } from "../../lib/spireMap";
+import { saveScore, formatTimeMs } from "../../lib/leaderboardUtils";
 
 export function ShopView({
   gold,
@@ -389,6 +390,55 @@ export function HowToPlayModal({ setShowHelp }: { setShowHelp: (show: boolean) =
             Understood!
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+export function SpireVictoryModal({ 
+  timeMs, 
+  onBack 
+}: { 
+  timeMs: number; 
+  onBack: () => void; 
+}) {
+  const [name, setName] = React.useState("");
+
+  const handleSave = () => {
+    saveScore(name, timeMs);
+    onBack();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-white border-4 border-amber-400 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-fade-up">
+        <div className="text-4xl font-black text-amber-500 mb-2 font-serif tracking-widest uppercase mt-4">Spire Conquered!</div>
+        <div className="text-sm text-slate-500 mb-6 font-serif italic">The anomalies have been purged. You are the ultimate candidate key.</div>
+        
+        <div className="bg-amber-50 p-4 rounded-xl mb-6 border border-amber-200">
+          <div className="text-xs uppercase font-bold text-amber-700 tracking-wider">Clear Time</div>
+          <div className="text-3xl font-mono font-black text-amber-900">{formatTimeMs(timeMs)}</div>
+        </div>
+
+        <div className="text-left mb-6">
+          <label className="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Enter your name</label>
+          <input
+            type="text"
+            className="w-full bg-slate-100 border-2 border-slate-300 rounded-xl px-4 py-3 text-lg font-bold text-slate-800 focus:outline-none focus:border-amber-400 focus:bg-white transition-colors"
+            placeholder="Anonymous Hero"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            maxLength={16}
+            autoFocus
+          />
+        </div>
+
+        <button
+          onClick={handleSave}
+          className="w-full font-serif text-xl font-bold py-4 px-6 rounded-xl bg-amber-500 text-white border-b-4 border-amber-600 shadow-sm hover:bg-amber-400 hover:border-b-2 hover:translate-y-[2px] active:border-b-0 active:translate-y-[4px] transition-all tracking-wider"
+        >
+          Save & Return
+        </button>
       </div>
     </div>
   );
