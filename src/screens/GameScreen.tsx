@@ -8,15 +8,15 @@ import type { FC } from "react";
 import type { GameState } from "../hooks/useGameState";
 import type { Difficulty } from "../lib/problemGenerator";
 import { DiffBadge, StatCard, Feedback, KeyBadge, Toast } from "../components/ui";
-import { SchemaPanel }    from "../components/SchemaPanel";
-import { FDPanel }        from "../components/FDPanel";
-import { ActionBar }      from "../components/ActionBar";
+import { SchemaPanel } from "../components/SchemaPanel";
+import { FDPanel } from "../components/FDPanel";
+import { ActionBar } from "../components/ActionBar";
 import { FoundKeysPanel } from "../components/FoundKeysPanel";
 import { TheoryPanel, TheoryButton } from "../components/TheoryPanel";
 import { DIFF_SELECTED_BTN } from "../lib/difficultyColors";
 
 interface GameScreenProps {
-  game:       GameState;
+  game: GameState;
   onGoToMenu: () => void;
 }
 
@@ -60,9 +60,9 @@ export const GameScreen: FC<GameScreenProps> = ({ game, onGoToMenu }) => {
             )}
 
             <div className="grid grid-cols-2 gap-3 mb-8">
-              <StatCard label="Score"    value={score}    />
-              <StatCard label="Streak"   value={streak}   />
-              <StatCard label="Round"    value={round}    />
+              <StatCard label="Score" value={score} />
+              <StatCard label="Streak" value={streak} />
+              <StatCard label="Round" value={round} />
               <StatCard label="Accuracy" value={accuracy} />
             </div>
 
@@ -100,9 +100,9 @@ export const GameScreen: FC<GameScreenProps> = ({ game, onGoToMenu }) => {
 
           {/* Stats — vertical */}
           <div className="flex flex-col gap-2">
-            <StatCard label="Score"    value={score}    />
-            <StatCard label="Streak"   value={streak}   />
-            <StatCard label="Round"    value={round}    />
+            <StatCard label="Score" value={score} />
+            <StatCard label="Streak" value={streak} />
+            <StatCard label="Round" value={round} />
             <StatCard label="Accuracy" value={accuracy} />
           </div>
 

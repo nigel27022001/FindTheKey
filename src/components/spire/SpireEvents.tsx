@@ -3,7 +3,7 @@ import { Store, Scroll, FlaskConical, FastForward, Coins, Gem, CircleHelp, Bug, 
 import type { useGameState } from "../../hooks/useGameState";
 import * as sfx from "../../lib/sfx";
 import type { EnemyConfig } from "../../lib/spireMap";
-import { saveScore, formatTimeMs } from "../../lib/leaderboardUtils";
+import { saveScore } from "../../lib/leaderboardUtils";
 
 export function ShopView({
   gold,
@@ -396,16 +396,16 @@ export function HowToPlayModal({ setShowHelp }: { setShowHelp: (show: boolean) =
 }
 
 export function SpireVictoryModal({ 
-  timeMs, 
+  score, 
   onBack 
 }: { 
-  timeMs: number; 
+  score: number; 
   onBack: () => void; 
 }) {
   const [name, setName] = React.useState("");
 
   const handleSave = () => {
-    saveScore(name, timeMs);
+    saveScore(name, score);
     onBack();
   };
 
@@ -416,8 +416,8 @@ export function SpireVictoryModal({
         <div className="text-sm text-slate-500 mb-6 font-serif italic">The anomalies have been purged. You are the ultimate candidate key.</div>
         
         <div className="bg-amber-50 p-4 rounded-xl mb-6 border border-amber-200">
-          <div className="text-xs uppercase font-bold text-amber-700 tracking-wider">Clear Time</div>
-          <div className="text-3xl font-mono font-black text-amber-900">{formatTimeMs(timeMs)}</div>
+          <div className="text-xs uppercase font-bold text-amber-700 tracking-wider">Total Score</div>
+          <div className="text-4xl font-mono font-black text-amber-900">{score.toLocaleString()} PTS</div>
         </div>
 
         <div className="text-left mb-6">
