@@ -1,6 +1,5 @@
 import type { FC } from "react";
 import { useState, useEffect, useRef } from "react";
-import { Bug, Ghost, Crown, Gem, CircleHelp, Tent, Timer, Rat, Droplet, Skull, Flame, Sword, Shield, Coins, Heart, Scroll, Store, FlaskConical, UserKey, FastForward, Volume2, VolumeX } from "lucide-react";
 import { generateSpireMap, generateEnemy, getRandomEnemyProblem } from "../lib/spireMap";
 import * as sfx from "../lib/sfx";
 import { DIFF_TEXT } from "../lib/difficultyColors";
@@ -17,7 +16,8 @@ import { SpireLog } from "./spire/SpireLog";
 import { SpireMap } from "./spire/SpireMap";
 import { SpireSidebar } from "./spire/SpireSidebar";
 import { SpireTopBar } from "./spire/SpireTopBar";
-import { ShopView, LootView, GameOverModal, VictoryOverlay, HowToPlayModal } from "./spire/SpireEvents";
+import { ShopView, LootView, GameOverModal, VictoryOverlay, HowToPlayModal, EffectOverlay } from "./spire/SpireEvents";
+import type { OverlayEffect } from "./spire/SpireEvents";
 
 interface SpireGameProps {
   onBack: () => void;
@@ -38,6 +38,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
   const [gold, setGold] = useState(0);
   const [floatingDamage, setFloatingDamage] = useState<{ id: number, val: number, isPlayer: boolean }[]>([]);
   const [pendingPotions, setPendingPotions] = useState<{ id: string, type: "hint" | "closure" | "skip" }[]>([]);
+  const [effectOverlay, setEffectOverlay] = useState<OverlayEffect | null>(null);
 
   const [playerShake, setPlayerShake] = useState(false);
   const [enemyShake, setEnemyShake] = useState(false);
@@ -132,6 +133,10 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
           setGold(g => g + 100);
           sfx.sfxGold();
           appendLog(`Treasure: Found a massive stash of coins! (+100 Gold)`);
+          setEffectOverlay("gold");
+          setTimeout(
+            () => setEffectOverlay(null)
+            , 2000);
         } else if (rand < 0.75) {
           setPlayerMaxHealth(max => {
             const newMax = max + 20;
@@ -139,6 +144,10 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
             return newMax;
           });
           appendLog(`Treasure: Found a Heart Container! (+20 Max HP and fully healed)`);
+          setEffectOverlay("hpGain");
+          setTimeout(
+            () => setEffectOverlay(null)
+            , 2000);
         } else {
           drops.push({ id: Math.random().toString(), type: "hint" });
           drops.push({ id: Math.random().toString(), type: "closure" });
@@ -187,11 +196,19 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
           setPlayerHealth(hp => Math.min(playerMaxHealth, hp + 20));
           sfx.sfxHeal();
           appendLog(`Mystery: Drank from a revitalizing spring. (+20 HP)`);
+          setEffectOverlay("heal");
+          setTimeout(
+            () => setEffectOverlay(null)
+            , 2000);
           shouldAutoComplete = true;
         } else if (rand < 0.6) {
           setPlayerHealth(hp => hp - 10);
           sfx.sfxTrap();
           appendLog(`Mystery: Fell into a spiked trap! (-10 HP)`);
+          setEffectOverlay("trap");
+          setTimeout(
+            () => setEffectOverlay(null)
+            , 2000);
           shouldAutoComplete = true;
         } else if (rand < 0.8) {
           sfx.sfxEnemyAppear();
@@ -472,6 +489,8 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
         <div className="flex-1 px-8 pt-0 pb-8 overflow-y-auto flex flex-col">
           <SpireMap map={map} currentNode={currentNode} onNodeClick={handleNodeClick} />
 
+          {effectOverlay && <EffectOverlay effect={effectOverlay} />}
+
           {currentNode && currentNode.type === "shop" && (
             <ShopView
               gold={gold}
@@ -490,6 +509,8 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
               handleFightComplete={handleFightComplete}
             />
           )}
+
+          {effectOverlay && <EffectOverlay effect={effectOverlay} />}
 
           {currentNode && activeEnemy && (
             <div className="max-w-3xl w-full mx-auto flex flex-col gap-6">

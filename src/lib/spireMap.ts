@@ -93,7 +93,7 @@ export function generateSpireMap(layers: number = 10, width: number = 5): SpireN
         type = "rest";
       } else if (l > 0) {
         const rand = Math.random();
-        if (rand < 0.2) type = "elite";
+        if (rand < 1.0) type = "treasure";
         else if (rand < 0.35) type = "mystery";
         else if (rand < 0.5) type = "shop";
         else if (rand < 0.6) type = "treasure";

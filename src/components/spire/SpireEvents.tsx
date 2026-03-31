@@ -1,5 +1,5 @@
 import React from "react";
-import { Store, Scroll, FlaskConical, FastForward, Coins, Gem, CircleHelp, Bug, Ghost, Tent } from "lucide-react";
+import { Store, Scroll, FlaskConical, FastForward, Coins, Gem, CircleHelp, Bug, Ghost, Tent, HeartPlus, HeartMinus } from "lucide-react";
 import type { useGameState } from "../../hooks/useGameState";
 import * as sfx from "../../lib/sfx";
 import type { EnemyConfig } from "../../lib/spireMap";
@@ -214,6 +214,59 @@ export function VictoryOverlay({ activeEnemy }: { activeEnemy: EnemyConfig }) {
           <div className="bg-emerald-50 text-emerald-700 px-4 py-1.5 rounded-full text-sm font-bold mb-4 shadow-sm">
             +{activeEnemy.type === "boss" ? 100 : activeEnemy.type === "elite" ? 40 : 15} Gold
           </div>
+          <p className="text-sm font-medium text-slate-500 animate-pulse">Returning to the map...</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export type OverlayEffect = "heal" | "trap" | "ambush" | "gold" | "hpGain"
+
+export function EffectOverlay({ effect }: { effect: OverlayEffect }) {
+  let effectProp, effectText, colorBg, colorBorder;
+  switch (effect) {
+    case "heal":
+      effectProp = <HeartPlus size={48} className="text-green-500" />;
+      effectText = "Drank from a revitalizing spring. (+20 HP)";
+      colorBg = "from-green-100 to-green-50";
+      colorBorder = "border-green-50";
+      break;
+    case "trap":
+      effectProp = <HeartMinus size={48} className="text-red-500" />;
+      effectText = "Fell into a spiked trap! (-10 HP)";
+      colorBg = "from-red-100 to-red-50";
+      colorBorder = "border-red-50";
+      break;
+    case "ambush":
+      effectProp = <Ghost size={48} className="text-slate-500" />;
+      effectText = "It's an ambush!";
+      colorBg = "from-slate-200 to-slate-100";
+      colorBorder = "border-slate-100";
+      break;
+    case "gold":
+      effectProp = <Coins size={48} className="text-yellow-500" />;
+      effectText = "Found a massive stash of coins! (+100 Gold)";
+      colorBg = "from-yellow-100 to-yellow-50";
+      colorBorder = "border-yellow-50";
+      break;
+    case "hpGain":
+      effectProp = <HeartPlus size={48} className="text-green-500" />;
+      effectText = "Found a Heart Container! (+20 Max HP and fully healed)";
+      colorBg = "from-green-100 to-green-50";
+      colorBorder = "border-green-50";
+      break;
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-[4px] px-4">
+      <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 p-8 w-full max-w-sm text-center animate-fade-up relative overflow-hidden">
+        <div className={`absolute top-0 left-0 w-full h-34 bg-gradient-to-br ${colorBg} z-0`} />
+        <div className="relative z-10 flex flex-col items-center justify-center">
+          <div className={`bg-white w-24 h-24 rounded-full flex items-center justify-center mb-4 shadow-lg border-4 ${colorBorder}`}>
+            {effectProp}
+          </div>
+          <h3 className="text-xl font-black text-slate-800 mb-2">{effectText}</h3>
           <p className="text-sm font-medium text-slate-500 animate-pulse">Returning to the map...</p>
         </div>
       </div>
