@@ -4,6 +4,10 @@
  */
 
 let ctx: AudioContext | null = null;
+let _muted = false;
+
+export function isMuted() { return _muted; }
+export function setMuted(m: boolean) { _muted = m; }
 
 function getCtx(): AudioContext {
   if (!ctx) ctx = new AudioContext();
@@ -20,6 +24,7 @@ function playTone(
   volume = 0.15,
   detune = 0,
 ) {
+  if (_muted) return;
   const c = getCtx();
   const osc = c.createOscillator();
   const gain = c.createGain();
@@ -34,6 +39,7 @@ function playTone(
 }
 
 function playNoise(duration: number, volume = 0.08) {
+  if (_muted) return;
   const c = getCtx();
   const bufferSize = c.sampleRate * duration;
   const buffer = c.createBuffer(1, bufferSize, c.sampleRate);
@@ -68,6 +74,7 @@ export function sfxClick() {
 
 /** Map node selected */
 export function sfxMapSelect() {
+  if (_muted) return;
   const c = getCtx();
   const t = c.currentTime;
   // ascending chime
@@ -91,6 +98,7 @@ export function sfxMapSelect() {
 
 /** Rune projectile launched — magical whoosh */
 export function sfxRuneLaunch() {
+  if (_muted) return;
   const c = getCtx();
   const t = c.currentTime;
 
@@ -112,6 +120,7 @@ export function sfxRuneLaunch() {
 
 /** Rune hits enemy — impactful hit with magic sparkle */
 export function sfxRuneHit() {
+  if (_muted) return;
   const c = getCtx();
   const t = c.currentTime;
 
@@ -141,6 +150,7 @@ export function sfxRuneHit() {
 
 /** Enemy launches attack projectile */
 export function sfxEnemyLaunch() {
+  if (_muted) return;
   const c = getCtx();
   const t = c.currentTime;
 
@@ -158,6 +168,7 @@ export function sfxEnemyLaunch() {
 
 /** Player takes damage — heavy thud + pain */
 export function sfxPlayerHit() {
+  if (_muted) return;
   const c = getCtx();
   const t = c.currentTime;
 
@@ -183,6 +194,7 @@ export function sfxPlayerHit() {
 
 /** Enemy encounter start — soft low tone */
 export function sfxEnemyAppear() {
+  if (_muted) return;
   const c = getCtx();
   const t = c.currentTime;
 
@@ -214,6 +226,7 @@ export function sfxEnemyAppear() {
 
 /** Enemy defeated — triumphant fanfare */
 export function sfxVictory() {
+  if (_muted) return;
   const c = getCtx();
   const t = c.currentTime;
 
@@ -234,6 +247,7 @@ export function sfxVictory() {
 
 /** Game over — descending defeat */
 export function sfxGameOver() {
+  if (_muted) return;
   const c = getCtx();
   const t = c.currentTime;
 
@@ -258,6 +272,7 @@ export function sfxGameOver() {
 
 /** Heal / Rest — warm chime */
 export function sfxHeal() {
+  if (_muted) return;
   const c = getCtx();
   const t = c.currentTime;
 
@@ -277,6 +292,7 @@ export function sfxHeal() {
 
 /** Gold collected — coin jingle */
 export function sfxGold() {
+  if (_muted) return;
   const c = getCtx();
   const t = c.currentTime;
 
@@ -296,6 +312,7 @@ export function sfxGold() {
 
 /** Treasure / loot found */
 export function sfxTreasure() {
+  if (_muted) return;
   const c = getCtx();
   const t = c.currentTime;
 
@@ -316,6 +333,7 @@ export function sfxTreasure() {
 
 /** Mystery event — eerie/curious */
 export function sfxMystery() {
+  if (_muted) return;
   const c = getCtx();
   const t = c.currentTime;
 
@@ -348,6 +366,7 @@ export function sfxPurchase() {
 
 /** Potion use — bubbly quaff */
 export function sfxPotion() {
+  if (_muted) return;
   const c = getCtx();
   const t = c.currentTime;
 
@@ -391,6 +410,7 @@ export function sfxWrong() {
 
 /** Correct answer in practice — satisfying chime */
 export function sfxCorrect() {
+  if (_muted) return;
   const c = getCtx();
   const t = c.currentTime;
   [659, 880].forEach((freq, i) => {
@@ -405,4 +425,36 @@ export function sfxCorrect() {
     osc.start(t + i * 0.08);
     osc.stop(t + i * 0.08 + 0.25);
   });
+}
+
+/* ═══════════════════════════════════════════
+   BGM
+   ═══════════════════════════════════════════ */
+
+let bossBgm: HTMLAudioElement | null = null;
+
+/** Start boss BGM — loops until stopped */
+export function playBossBgm() {
+  if (_muted) return;
+  if (bossBgm) { bossBgm.pause(); bossBgm = null; }
+  bossBgm = new Audio("/bgm-boss.mp3");
+  bossBgm.loop = true;
+  bossBgm.volume = 0.35;
+  bossBgm.play().catch(() => {});
+}
+
+/** Stop boss BGM with a short fade-out */
+export function stopBossBgm() {
+  if (!bossBgm) return;
+  const audio = bossBgm;
+  bossBgm = null;
+  const fade = setInterval(() => {
+    if (audio.volume > 0.05) {
+      audio.volume = Math.max(0, audio.volume - 0.05);
+    } else {
+      clearInterval(fade);
+      audio.pause();
+      audio.currentTime = 0;
+    }
+  }, 50);
 }

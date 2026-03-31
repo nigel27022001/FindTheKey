@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { CircleHelp, Timer, Heart, Scroll, FlaskConical, FastForward, Coins } from "lucide-react";
+import { CircleHelp, Timer, Heart, Scroll, FlaskConical, FastForward, Coins, Volume2, VolumeX } from "lucide-react";
+import * as sfx from "../../lib/sfx";
 import type { useGameState } from "../../hooks/useGameState";
 
 interface SpireTopBarProps {
@@ -10,6 +11,8 @@ interface SpireTopBarProps {
   playerMaxHealth: number;
   gold: number;
   game: ReturnType<typeof useGameState>;
+  muted: boolean;
+  setMuted: (muted: boolean) => void;
 }
 
 export function SpireTopBar({
@@ -20,6 +23,8 @@ export function SpireTopBar({
   playerMaxHealth,
   gold,
   game,
+  muted,
+  setMuted,
 }: SpireTopBarProps) {
   const [discardPrompt, setDiscardPrompt] = useState<{ type: "hint" | "closure" | "skip", index: number } | null>(null);
 
@@ -38,6 +43,18 @@ export function SpireTopBar({
             className="flex items-center gap-1.5 sm:gap-2 px-3 py-2 sm:px-6 sm:py-2.5 bg-white hover:bg-slate-50 text-blue-700 hover:text-blue-900 rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 transition-colors font-bold text-xs sm:text-sm"
           >
             <CircleHelp size={16} className="sm:w-5 sm:h-5" /> How to Play
+          </button>
+          <button
+            onClick={() => {
+              const next = !muted;
+              setMuted(next);
+              sfx.setMuted(next);
+              if (next) sfx.stopBossBgm();
+            }}
+            className="px-3 py-2 sm:px-4 sm:py-2.5 bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-800 rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 transition-colors"
+            title={muted ? "Sound Off" : "Sound On"}
+          >
+            {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
           </button>
         </div>
 

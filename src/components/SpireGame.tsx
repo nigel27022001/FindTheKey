@@ -1,6 +1,6 @@
 import type { FC } from "react";
 import { useState, useEffect, useRef } from "react";
-import { Bug, Ghost, Crown, Gem, CircleHelp, Tent, Timer, Rat, Droplet, Skull, Flame, Sword, Shield, Coins, Heart, Scroll, Store, FlaskConical, UserKey, FastForward } from "lucide-react";
+import { Bug, Ghost, Crown, Gem, CircleHelp, Tent, Timer, Rat, Droplet, Skull, Flame, Sword, Shield, Coins, Heart, Scroll, Store, FlaskConical, UserKey, FastForward, Volume2, VolumeX } from "lucide-react";
 import { generateSpireMap, generateEnemy, getRandomEnemyProblem } from "../lib/spireMap";
 import * as sfx from "../lib/sfx";
 import { DIFF_TEXT } from "../lib/difficultyColors";
@@ -43,6 +43,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
   const [enemyShake, setEnemyShake] = useState(false);
   const [projectiles, setProjectiles] = useState<{ id: number, type: "rune" | "enemy", label: string, emoji: string }[]>([]);
 
+  const [muted, setMuted] = useState(false);
   const [battleLog, setBattleLog] = useState<string[]>([]);
   const [battleTimer, setBattleTimer] = useState<number | null>(null);
 
@@ -104,6 +105,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
         };
 
         setActiveEnemy(enemyWithMax);
+        if (node.type === "boss") sfx.playBossBgm();
         sfx.sfxEnemyAppear();
 
         const newProb = getRandomEnemyProblem(enemyWithMax);
@@ -305,6 +307,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
     if (showVictory) return;
 
     setShowVictory(true);
+    sfx.stopBossBgm();
     sfx.sfxVictory();
     window.setTimeout(() => {
       setShowVictory(false);
@@ -433,7 +436,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
 
   // Game over sound
   useEffect(() => {
-    if (playerHealth <= 0) sfx.sfxGameOver();
+    if (playerHealth <= 0) { sfx.stopBossBgm(); sfx.sfxGameOver(); }
   }, [playerHealth <= 0]);
 
   return (
@@ -462,6 +465,8 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
           playerMaxHealth={playerMaxHealth}
           gold={gold}
           game={game}
+          muted={muted}
+          setMuted={setMuted}
         />
 
         <div className="flex-1 p-8 overflow-y-auto flex flex-col">
@@ -550,7 +555,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
 
       <SpireLog battleLog={battleLog} />
 
-      { showHelp && <HowToPlayModal setShowHelp={setShowHelp} /> }
+      {showHelp && <HowToPlayModal setShowHelp={setShowHelp} />}
     </div >
   );
 };
