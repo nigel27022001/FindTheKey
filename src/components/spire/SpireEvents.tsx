@@ -1,5 +1,5 @@
 import React from "react";
-import { Store, Scroll, FlaskConical, FastForward, Coins, Gem, CircleHelp, Bug, Ghost, Tent } from "lucide-react";
+import { Store, Scroll, FlaskConical, FastForward, Coins, Gem, CircleHelp, Bug, Ghost, Tent, Crown } from "lucide-react";
 import type { useGameState } from "../../hooks/useGameState";
 import * as sfx from "../../lib/sfx";
 import type { EnemyConfig } from "../../lib/spireMap";
@@ -265,6 +265,16 @@ export function HowToPlayModal({ setShowHelp }: { setShowHelp: (show: boolean) =
                 <div>
                   <strong className="block text-red-700">Elite Fight</strong>
                   <span className="text-sm text-gray-600">Difficult combat. Drops 40 Gold.</span>
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <div className="w-12 h-12 shrink-0 bg-gray-50 border-2 border-gray-300 rounded-full flex items-center justify-center">
+                  <Crown size={24} className="text-purple-700" />
+                </div>
+                <div>
+                  <strong className="block text-purple-700">Final Boss</strong>
+                  <span className="text-sm text-gray-600">The ultimate test at the top of the Spire!</span>
                 </div>
               </div>
 
