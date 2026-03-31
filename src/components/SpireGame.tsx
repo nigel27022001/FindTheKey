@@ -469,7 +469,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
           setMuted={setMuted}
         />
 
-        <div className="flex-1 p-8 overflow-y-auto flex flex-col">
+        <div className="flex-1 px-8 pt-0 pb-8 overflow-y-auto flex flex-col">
           <SpireMap map={map} currentNode={currentNode} onNodeClick={handleNodeClick} />
 
           {currentNode && currentNode.type === "shop" && (

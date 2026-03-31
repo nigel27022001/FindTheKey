@@ -29,7 +29,7 @@ export function SpireTopBar({
   const [discardPrompt, setDiscardPrompt] = useState<{ type: "hint" | "closure" | "skip", index: number } | null>(null);
 
   return (
-    <div className="sticky top-0 z-20 pointer-events-none px-3 py-2 sm:px-4 sm:py-3 bg-stone-50 border-b border-gray-200 shrink-0">
+    <div className="sticky top-0 z-20 pointer-events-none px-3 py-1 sm:px-4 sm:py-1.5 bg-stone-50 border-b border-gray-200 shrink-0">
       <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center">
         <div className="flex flex-wrap gap-2 items-center pointer-events-auto">
           <button
