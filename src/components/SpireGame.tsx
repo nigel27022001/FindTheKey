@@ -358,7 +358,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
   };
 
   useEffect(() => {
-    if (activeEnemy && game.problemSolved && currentProblem) {
+    if (activeEnemy && game.allSolved && currentProblem) {
       const timeRemaining = battleTimer !== null ? battleTimer : currentProblem.timer;
       const weightedDamage = Math.max(1, Math.round(currentProblem.damage * (timeRemaining / currentProblem.timer)));
 
@@ -391,7 +391,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
         appendLog("Enemy defeated.");
       }
     }
-  }, [game.problemSolved]);
+  }, [game.allSolved]);
 
   useEffect(() => {
     if (activeEnemy && game.gameOver) {
