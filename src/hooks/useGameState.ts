@@ -38,6 +38,15 @@ export interface LiveClosure {
 
 export type GameMode = "practice" | "spire";
 
+export interface RestoredStats {
+  score:       number;
+  streak:      number;
+  round:       number;
+  hintsLeft:   number;
+  closureUses: number;
+  skipUses:    number;
+}
+
 export interface GameState {
   gameMode: GameMode;
   setGameMode: (m: GameMode) => void;
@@ -83,6 +92,7 @@ export interface GameState {
   // Derived
   getLiveClosure:    () => LiveClosure;
   getHighlightedFDs: () => boolean[];
+  restoreStats: (stats: RestoredStats) => void;
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -190,6 +200,19 @@ export function useGameState(): GameState {
     setActiveClosureSight(false);
     setWrongAttempts(0);
   }, [difficulty]);
+
+  /**
+   * Bulk-set the stats that are persisted between sessions.
+   * Called once on mount when SpireGame detects an existing save.
+   */
+  function restoreStats(stats: RestoredStats): void {
+    setScore(stats.score);
+    setStreak(stats.streak);
+    setRound(stats.round);
+    setHintsLeft(stats.hintsLeft);
+    setClosureUses(stats.closureUses);
+    setSkipUses(stats.skipUses);
+  }
 
   function changeDifficulty(diff: Difficulty): void {
     setDifficulty(diff);
@@ -394,6 +417,6 @@ export function useGameState(): GameState {
     feedback, allSolved, problemSolved, newKey, toast, gameOver,
     closureUses, activeClosureSight, skipUses, earnSkipPotion, consumeSkipPotion, useClosurePotion, consumeClosureUse, discardHint, discardClosure, discardSkip, clearPotions,
     loadProblem, nextProblem, changeDifficulty, toggleAttr, clearSelection, submitAnswer, showHint, earnHint, dismissGameOver,
-    getLiveClosure, getHighlightedFDs,
+    getLiveClosure, getHighlightedFDs, restoreStats,
   };
 }
