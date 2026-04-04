@@ -6,9 +6,9 @@ const DIFFICULTIES: Difficulty[] = ["easy", "medium", "hard", "expert"];
 const SAMPLES = 100;
 
 const FALLBACK_THRESHOLDS: Record<Difficulty, number> = {
-  easy:   0.00,
+  easy: 0.00,
   medium: 0.05,
-  hard:   0.10,
+  hard: 0.10,
   expert: 0.15,
 };
 
@@ -30,7 +30,7 @@ describe("generateProblem fallback rate", { timeout: 30_000 }, () => {
       }
 
       const fallbackCount = fallbackSpy.mock.calls.filter(
-        call => call[0] === diff
+        (call: any) => call[0] === diff
       ).length;
 
       const fallbackRate = fallbackCount / SAMPLES;
@@ -39,4 +39,5 @@ describe("generateProblem fallback rate", { timeout: 30_000 }, () => {
 
       expect(fallbackRate).toBeLessThanOrEqual(FALLBACK_THRESHOLDS[diff]);
     });
-  }});
+  }
+});
