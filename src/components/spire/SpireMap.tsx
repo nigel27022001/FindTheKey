@@ -1,4 +1,3 @@
-import React from "react";
 import { Bug, Ghost, Crown, Gem, CircleHelp, Tent, Store, Scroll } from "lucide-react";
 import type { SpireNode } from "../../lib/spireMap";
 
