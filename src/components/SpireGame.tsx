@@ -1,6 +1,5 @@
 import type { FC } from "react";
 import { useState, useEffect, useRef } from "react";
-import { Bug, Ghost, Crown, Gem, CircleHelp, Tent, Timer, Rat, Droplet, Skull, Flame, Sword, Shield, Coins, Heart, Scroll, Store, FlaskConical, UserKey, FastForward, Volume2, VolumeX } from "lucide-react";
 import { generateSpireMap, generateEnemy, getRandomEnemyProblem } from "../lib/spireMap";
 import * as sfx from "../lib/sfx";
 import { DIFF_TEXT } from "../lib/difficultyColors";
@@ -17,7 +16,8 @@ import { SpireLog } from "./spire/SpireLog";
 import { SpireMap } from "./spire/SpireMap";
 import { SpireSidebar } from "./spire/SpireSidebar";
 import { SpireTopBar } from "./spire/SpireTopBar";
-import { ShopView, LootView, GameOverModal, VictoryOverlay, HowToPlayModal } from "./spire/SpireEvents";
+import { ShopView, LootView, GameOverModal, VictoryOverlay, HowToPlayModal, EffectOverlay, SpireVictoryModal } from "./spire/SpireEvents";
+import type { OverlayEffect } from "./spire/SpireEvents";
 
 interface SpireGameProps {
   onBack: () => void;
@@ -38,6 +38,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
   const [gold, setGold] = useState(0);
   const [floatingDamage, setFloatingDamage] = useState<{ id: number, val: number, isPlayer: boolean }[]>([]);
   const [pendingPotions, setPendingPotions] = useState<{ id: string, type: "hint" | "closure" | "skip" }[]>([]);
+  const [effectOverlay, setEffectOverlay] = useState<OverlayEffect | null>(null);
 
   const [playerShake, setPlayerShake] = useState(false);
   const [enemyShake, setEnemyShake] = useState(false);
@@ -46,6 +47,10 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
   const [muted, setMuted] = useState(false);
   const [battleLog, setBattleLog] = useState<string[]>([]);
   const [battleTimer, setBattleTimer] = useState<number | null>(null);
+
+  const [score, setScore] = useState<number>(0);
+  const [combo, setCombo] = useState<number>(1.0);
+  const [isSpireComplete, setIsSpireComplete] = useState<boolean>(false);
 
   const appendLog = (message: string) => {
     const ts = new Date().toLocaleTimeString([], {
@@ -73,6 +78,9 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
       setMap(generateSpireMap(15, 5));
       appendLog("Run started. Map generated.");
       game.clearPotions();
+      setScore(0);
+      setCombo(1.0);
+      setIsSpireComplete(false);
       initialized.current = true;
     }
   }, []);
@@ -125,6 +133,8 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
         let drops: { id: string, type: "hint" | "closure" | "skip" }[] = [];
         let shouldAutoComplete = true;
 
+        setScore(s => s + 50);
+
         if (rand < 0.25) {
           drops.push({ id: Math.random().toString(), type: "skip" });
           appendLog(`Treasure: Found a Skip Potion!`);
@@ -132,6 +142,10 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
           setGold(g => g + 100);
           sfx.sfxGold();
           appendLog(`Treasure: Found a massive stash of coins! (+100 Gold)`);
+          setEffectOverlay("gold");
+          setTimeout(
+            () => setEffectOverlay(null)
+            , 2000);
         } else if (rand < 0.75) {
           setPlayerMaxHealth(max => {
             const newMax = max + 20;
@@ -139,6 +153,10 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
             return newMax;
           });
           appendLog(`Treasure: Found a Heart Container! (+20 Max HP and fully healed)`);
+          setEffectOverlay("hpGain");
+          setTimeout(
+            () => setEffectOverlay(null)
+            , 2000);
         } else {
           drops.push({ id: Math.random().toString(), type: "hint" });
           drops.push({ id: Math.random().toString(), type: "closure" });
@@ -174,6 +192,8 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
         let shouldAutoComplete = false;
         let drops: { id: string, type: "hint" | "closure" | "skip" }[] = [];
 
+        setScore(s => s + 50);
+
         if (rand < 0.2) {
           if (Math.random() < 0.5) {
             drops.push({ id: Math.random().toString(), type: "hint" });
@@ -187,11 +207,19 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
           setPlayerHealth(hp => Math.min(playerMaxHealth, hp + 20));
           sfx.sfxHeal();
           appendLog(`Mystery: Drank from a revitalizing spring. (+20 HP)`);
+          setEffectOverlay("heal");
+          setTimeout(
+            () => setEffectOverlay(null)
+            , 2000);
           shouldAutoComplete = true;
         } else if (rand < 0.6) {
           setPlayerHealth(hp => hp - 10);
           sfx.sfxTrap();
           appendLog(`Mystery: Fell into a spiked trap! (-10 HP)`);
+          setEffectOverlay("trap");
+          setTimeout(
+            () => setEffectOverlay(null)
+            , 2000);
           shouldAutoComplete = true;
         } else if (rand < 0.8) {
           sfx.sfxEnemyAppear();
@@ -239,6 +267,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
           return playerMaxHealth;
         });
 
+        setScore(s => s + 50);
         // Auto-complete the rest room
         setMap(prev =>
           prev.map(layer =>
@@ -260,6 +289,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
         appendLog(`Entered the Merchant's Shop.`);
         setCurrentNode(node);
         setActiveEnemy(null);
+        setScore(s => s + 50);
       } else {
         setActiveEnemy(null);
       }
@@ -271,9 +301,16 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
 
     if (activeEnemy) {
       const droppedGold = activeEnemy.type === "boss" ? 100 : activeEnemy.type === "elite" ? 40 : 15;
+      const killPoints = activeEnemy.type === "boss" ? 1000 : activeEnemy.type === "elite" ? 250 : 100;
+
       setGold(g => g + droppedGold);
+      setScore(s => s + killPoints);
       sfx.sfxGold();
-      appendLog(`${activeEnemy.name} defeated! Dropped ${droppedGold} gold.`);
+      appendLog(`${activeEnemy.name} defeated! Dropped ${droppedGold} gold. (+${killPoints} pts)`);
+
+      if (activeEnemy.type === "boss" && currentNode.layer === map.length - 1) {
+        setIsSpireComplete(true);
+      }
     } else {
       appendLog(`${currentNode.type.toUpperCase()} cleared.`);
     }
@@ -377,7 +414,20 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
         sfx.sfxRuneHit();
       }, 450);
 
-      appendLog(`Solved! Dealt ${weightedDamage} damage.`);
+      const basePoints = currentProblem.difficulty === "expert" ? 400 : currentProblem.difficulty === "hard" ? 250 : currentProblem.difficulty === "medium" ? 150 : 100;
+      const pointsGained = Math.round(basePoints * combo);
+
+      setScore(s => s + pointsGained);
+      setCombo(c => {
+        if (c >= 3.0) return 3.0;
+        if (c >= 2.5) return 3.0;
+        if (c >= 2.0) return 2.5;
+        if (c >= 1.5) return 2.0;
+        if (c >= 1.2) return 1.5;
+        return 1.2;
+      });
+
+      appendLog(`Solved! Dealt ${weightedDamage} damage. +${pointsGained} pts! Combo increased!`);
 
       if (newHp > 0) {
         setTimeout(() => {
@@ -407,8 +457,9 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
         sfx.sfxPlayerHit();
       }, 450);
 
+      setCombo(1.0);
       sfx.sfxWrong();
-      appendLog("Wrong answer! You took " + activeEnemy.Damage + " damage. The enemy hits you for trying a faulty key!");
+      appendLog("Wrong answer! You took " + activeEnemy.Damage + " damage. Combo reset to 1.0x!");
       game.dismissGameOver();
       setBattleTimer(currentProblem?.timer ?? 30);
     }
@@ -444,6 +495,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
       <Toast toast={game.toast} />
 
       {playerHealth <= 0 && <GameOverModal onBack={onBack} />}
+      {isSpireComplete && <SpireVictoryModal score={score} onBack={onBack} />}
 
       <SpireSidebar
         projectiles={projectiles}
@@ -464,6 +516,8 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
           playerHealth={playerHealth}
           playerMaxHealth={playerMaxHealth}
           gold={gold}
+          score={score}
+          combo={combo}
           game={game}
           muted={muted}
           setMuted={setMuted}
@@ -471,6 +525,8 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
 
         <div className="flex-1 px-8 pt-0 pb-8 overflow-y-auto flex flex-col">
           <SpireMap map={map} currentNode={currentNode} onNodeClick={handleNodeClick} />
+
+          {effectOverlay && <EffectOverlay effect={effectOverlay} />}
 
           {currentNode && currentNode.type === "shop" && (
             <ShopView
@@ -490,6 +546,8 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
               handleFightComplete={handleFightComplete}
             />
           )}
+
+          {effectOverlay && <EffectOverlay effect={effectOverlay} />}
 
           {currentNode && activeEnemy && (
             <div className="max-w-3xl w-full mx-auto flex flex-col gap-6">

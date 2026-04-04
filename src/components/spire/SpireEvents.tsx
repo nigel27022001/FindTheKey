@@ -1,8 +1,9 @@
 import React from "react";
-import { Store, Scroll, FlaskConical, FastForward, Coins, Gem, CircleHelp, Bug, Ghost, Tent, Crown } from "lucide-react";
+import { Store, Scroll, FlaskConical, FastForward, Coins, Gem, CircleHelp, Bug, Ghost, Tent, HeartPlus, HeartMinus, Crown } from "lucide-react";
 import type { useGameState } from "../../hooks/useGameState";
 import * as sfx from "../../lib/sfx";
 import type { EnemyConfig } from "../../lib/spireMap";
+import { saveScore } from "../../lib/leaderboardUtils";
 
 export function ShopView({
   gold,
@@ -142,11 +143,9 @@ export function LootView({
                   if (potion.type === "closure") game.useClosurePotion();
                   if (potion.type === "skip") game.earnSkipPotion();
 
-                  setPendingPotions(prev => {
-                    const next = prev.filter(p => p.id !== potion.id);
-                    if (next.length === 0) handleFightComplete();
-                    return next;
-                  });
+                  const nextPotions = pendingPotions.filter(p => p.id !== potion.id);
+                  setPendingPotions(nextPotions);
+                  if (nextPotions.length === 0) handleFightComplete();
                 }
               }}
               className="flex-1 min-w-[120px] bg-slate-50 border-2 border-slate-200 rounded-xl p-4 flex flex-col items-center gap-2 hover:bg-white hover:border-blue-400 hover:shadow-md transition-all active:scale-95 group"
@@ -214,6 +213,59 @@ export function VictoryOverlay({ activeEnemy }: { activeEnemy: EnemyConfig }) {
           <div className="bg-emerald-50 text-emerald-700 px-4 py-1.5 rounded-full text-sm font-bold mb-4 shadow-sm">
             +{activeEnemy.type === "boss" ? 100 : activeEnemy.type === "elite" ? 40 : 15} Gold
           </div>
+          <p className="text-sm font-medium text-slate-500 animate-pulse">Returning to the map...</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export type OverlayEffect = "heal" | "trap" | "ambush" | "gold" | "hpGain"
+
+export function EffectOverlay({ effect }: { effect: OverlayEffect }) {
+  let effectProp, effectText, colorBg, colorBorder;
+  switch (effect) {
+    case "heal":
+      effectProp = <HeartPlus size={48} className="text-green-500" />;
+      effectText = "Drank from a revitalizing spring. (+20 HP)";
+      colorBg = "from-green-100 to-green-50";
+      colorBorder = "border-green-50";
+      break;
+    case "trap":
+      effectProp = <HeartMinus size={48} className="text-red-500" />;
+      effectText = "Fell into a spiked trap! (-10 HP)";
+      colorBg = "from-red-100 to-red-50";
+      colorBorder = "border-red-50";
+      break;
+    case "ambush":
+      effectProp = <Ghost size={48} className="text-slate-500" />;
+      effectText = "It's an ambush!";
+      colorBg = "from-slate-200 to-slate-100";
+      colorBorder = "border-slate-100";
+      break;
+    case "gold":
+      effectProp = <Coins size={48} className="text-yellow-500" />;
+      effectText = "Found a massive stash of coins! (+100 Gold)";
+      colorBg = "from-yellow-100 to-yellow-50";
+      colorBorder = "border-yellow-50";
+      break;
+    case "hpGain":
+      effectProp = <HeartPlus size={48} className="text-green-500" />;
+      effectText = "Found a Heart Container! (+20 Max HP and fully healed)";
+      colorBg = "from-green-100 to-green-50";
+      colorBorder = "border-green-50";
+      break;
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-[4px] px-4">
+      <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 p-8 w-full max-w-sm text-center animate-fade-up relative overflow-hidden">
+        <div className={`absolute top-0 left-0 w-full h-34 bg-gradient-to-br ${colorBg} z-0`} />
+        <div className="relative z-10 flex flex-col items-center justify-center">
+          <div className={`bg-white w-24 h-24 rounded-full flex items-center justify-center mb-4 shadow-lg border-4 ${colorBorder}`}>
+            {effectProp}
+          </div>
+          <h3 className="text-xl font-black text-slate-800 mb-2">{effectText}</h3>
           <p className="text-sm font-medium text-slate-500 animate-pulse">Returning to the map...</p>
         </div>
       </div>
@@ -346,6 +398,55 @@ export function HowToPlayModal({ setShowHelp }: { setShowHelp: (show: boolean) =
             Understood!
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+export function SpireVictoryModal({
+  score,
+  onBack
+}: {
+  score: number;
+  onBack: () => void;
+}) {
+  const [name, setName] = React.useState("");
+
+  const handleSave = () => {
+    saveScore(name, score);
+    onBack();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-white border-4 border-amber-400 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-fade-up">
+        <div className="text-4xl font-black text-amber-500 mb-2 font-serif tracking-widest uppercase mt-4">Spire Conquered!</div>
+        <div className="text-sm text-slate-500 mb-6 font-serif italic">The anomalies have been purged. You are the ultimate candidate key.</div>
+
+        <div className="bg-amber-50 p-4 rounded-xl mb-6 border border-amber-200">
+          <div className="text-xs uppercase font-bold text-amber-700 tracking-wider">Total Score</div>
+          <div className="text-4xl font-mono font-black text-amber-900">{score.toLocaleString()} PTS</div>
+        </div>
+
+        <div className="text-left mb-6">
+          <label className="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Enter your name</label>
+          <input
+            type="text"
+            className="w-full bg-slate-100 border-2 border-slate-300 rounded-xl px-4 py-3 text-lg font-bold text-slate-800 focus:outline-none focus:border-amber-400 focus:bg-white transition-colors"
+            placeholder="Anonymous Hero"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            maxLength={16}
+            autoFocus
+          />
+        </div>
+
+        <button
+          onClick={handleSave}
+          className="w-full font-serif text-xl font-bold py-4 px-6 rounded-xl bg-amber-500 text-white border-b-4 border-amber-600 shadow-sm hover:bg-amber-400 hover:border-b-2 hover:translate-y-[2px] active:border-b-0 active:translate-y-[4px] transition-all tracking-wider"
+        >
+          Save & Return
+        </button>
       </div>
     </div>
   );
