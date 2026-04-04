@@ -11,18 +11,20 @@ export interface Problem {
   candidateKeys: string[][];
 }
 
-// A - number of attrs, F - number of functional dependencies, K - number of candidate keys
+// A - number of attrs, F - number of functional dependencies, 
+// K - number of candidate keys, KL - number of attributes in candidate key
 interface DifficultyConfig {
   minA: number; maxA: number;
   minF: number; maxF: number;
   minK: number; maxK: number;
+  minKL: number; maxKL: number;
 }
 
 export const DIFFICULTY_CONFIG: Record<Difficulty, DifficultyConfig> = {
-  easy:   { minA: 3, maxA: 4, minF: 2, maxF: 3, minK: 1, maxK: 1, },
-  medium: { minA: 4, maxA: 5, minF: 3, maxF: 4, minK: 1, maxK: 2, },
-  hard:   { minA: 5, maxA: 6, minF: 4, maxF: 5, minK: 2, maxK: 3, },
-  expert: { minA: 6, maxA: 7, minF: 5, maxF: 6, minK: 2, maxK: 3,  },
+  easy:   { minA: 3, maxA: 4, minF: 2, maxF: 3, minK: 1, maxK: 1, minKL: 1, maxKL: 1},
+  medium: { minA: 4, maxA: 5, minF: 3, maxF: 4, minK: 1, maxK: 2, minKL: 1, maxKL: 2},
+  hard:   { minA: 5, maxA: 6, minF: 5, maxF: 5, minK: 2, maxK: 3, minKL: 2, maxKL: 3},
+  expert: { minA: 6, maxA: 7, minF: 6, maxF: 7, minK: 2, maxK: 3, minKL: 2, maxKL: 3},
 };
 
 export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
@@ -36,6 +38,18 @@ export const HINT_COUNTS: Record<Difficulty, number> = {
   easy: 3, medium: 3, hard: 2, expert: 1,
 };
 
+// Utils
+
+function isValidKeyLength(candidateKeys: string[][], cfg: DifficultyConfig) {
+  return candidateKeys.reduce(
+      (acc, key) => acc && key.length >= cfg.minKL && key.length <= cfg.maxKL, true)
+}
+
+function isValidNumberOfKeys(candidateKeys: string[][], cfg: DifficultyConfig) {
+  const nk = candidateKeys.length;
+  return nk <= cfg.maxK && nk >= cfg.minK;
+}
+
 // ─── LHS / RHS sampling ───────────────────────────────────────────────────────
 
 const FD_PERCENTAGE_LHS: Record<Difficulty, number[]> = {
@@ -48,7 +62,7 @@ const FD_PERCENTAGE_LHS: Record<Difficulty, number[]> = {
 const FD_PERCENTAGE_RHS: Record<Difficulty, Record<number, number[]>> = {
   easy:   { 1: [1] },
   medium: { 1: [1, 2], 2: [1, 2] },
-  hard:   { 1: [1, 1, 1, 2], 2: [1, 1, 2, 2, 3], 3: [1, 1, 1, 2] },
+  hard:   { 1: [1], 2: [1, 1, 2, 2, 3], 3: [1, 1, 1, 2] },
   expert: { 1: [1, 1, 1, 2], 2: [1, 1, 1, 2, 2], 3: [1, 1, 1, 2, 2], 4: [1, 1, 1, 2, 3] },
 };
 
@@ -74,7 +88,6 @@ function allAttrsReachable(allAttrs: string[], fds: FD[]): boolean {
 // ─── Fallback ─────────────────────────────────────────────────────────────────
 
 export function buildFallbackProblem(diff: Difficulty): Problem {
-  console.log("fallback")
   if (diff === "easy") {
     const allAttrs = ["A", "B", "C"];
     const fds: FD[] = [{ lhs: ["A"], rhs: ["B", "C"] }];
@@ -136,18 +149,15 @@ export function generateProblem(diff: Difficulty): Problem {
       const rhs      = pick(remaining, Math.min(rhsSize, remaining.length)).sort();
       const key      = lhs.join("") + "->" + rhs.join("");
 
-      // if (lhs.length === 1 && rhs.length === 1 && (diff === "hard" || diff === "expert")) continue;
       if (!seen.has(key)) { seen.add(key); fds.push({ lhs, rhs }); }
     }
   
     if (diff !== "easy" && !allAttrsReachable(allAttrs, fds)) continue;
     const candidateKeys = findAllCandidateKeys(allAttrs, fds);
 
-    const nk = candidateKeys.length;
-
     if (
-      nk >= cfg.minK &&
-      nk <= cfg.maxK &&
+      isValidKeyLength(candidateKeys, cfg) && 
+      isValidNumberOfKeys(candidateKeys, cfg) &&
       candidateKeys.some(k => k.length < numAttrs) &&
       passesStructuralProfile(diff, allAttrs, fds, candidateKeys)
     ) {

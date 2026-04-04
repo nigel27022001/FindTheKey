@@ -7,11 +7,12 @@ import type { Difficulty } from "./problemGenerator";
 
 export interface HardLimits {
   minDerivationDepthRatio: number; // derivationRounds / numAttrs
-  minLHSOverlapRatio:      number; // attrs appearing on LHS >1 time / total attrs
+  keyInLHSRatio:           number; // if candidate key is in LHS of FD
 }
 
 export interface ScoreThreshold {
   minScore: number;
+  maxScore: number;
 }
 
 export interface StructuralThreshold {
@@ -22,14 +23,14 @@ export interface StructuralThreshold {
 export interface ScoredProfile {
   // Hard limit metrics
   derivationDepthRatio: number;
-  lhsOverlapRatio:      number;
+  keyInLHSRatio:        number;
 
   // Score breakdown
   meaningfulRedundantLHS:    number; // complicating — LHS has no key subset
   keyExposingRedundantLHS:   number; // simplifying  — LHS contains a key
   distractingRedundantFDs:   number; // complicating — LHS has no key subset
   chainShortcuttingFDs:      number; // simplifying  — LHS contains a key
-  nearMisses:                number;
+//  nearMisses:                number;
 
   // Final
   rawScore:        number;
@@ -39,31 +40,34 @@ export interface ScoredProfile {
 // ─── Weights ──────────────────────────────────────────────────────────────────
 
 const SCORE_WEIGHTS = {
-  meaningfulRedundantLHS:  +2.0,
-  keyExposingRedundantLHS: -2.0,
-  distractingRedundantFD:  +1.5,
-  chainShortcuttingFD:     -1.5,
-  nearMiss:                +1.0,
+  meaningfulRedundantLHS:  +2.0,  // strongest distractor — misleads minimality check
+  keyExposingRedundantLHS: -1.5,  // actively simplifies — penalise
+  distractingRedundantFD:  +1.5,  // misleads key search — reward
+  chainShortcuttingFD:     -1.0,  // shortcuts derivation — penalise  nearMiss:                +0,
+//  nearMiss:                +0, 
 } as const;
 
+
+
 // ─── Thresholds ───────────────────────────────────────────────────────────────
+
 
 export const STRUCTURAL_THRESHOLDS: Partial<Record<Difficulty, StructuralThreshold>> = {
   hard: {
     hardLimits: {
-      minDerivationDepthRatio: 0.3,  // was 0.4 — 2 rounds on 6 attrs
-      minLHSOverlapRatio:      0.3,  // was 0.4 — 2 of 6 attrs appear twice
+      minDerivationDepthRatio: 0.3,  // rounds / numAttrs — ~2 rounds on 6 attrs
+      keyInLHSRatio:           0.5,  // at most half the keys directly visible
     },
-    scoreThreshold: { minScore: 0.8 }, // was 2.0 — normalised per FD
+    scoreThreshold: { minScore: 0, maxScore: 0.5 },
   },
   expert: {
     hardLimits: {
-      minDerivationDepthRatio: 0.4,  // was 0.5 — ~3 rounds on 7 attrs
-      minLHSOverlapRatio:      0,  // was 0.5 — ~3 of 7 attrs appear twice
+      minDerivationDepthRatio: 0.4,  // ~3 rounds on 7 attrs
+      keyInLHSRatio:           0.0,  // no key may appear directly as LHS
     },
-    scoreThreshold: { minScore: 2 }, // was 3.5 — still harder than hard
+    scoreThreshold: { minScore: 0.4, maxScore: 2.0 },
   },
-};;
+};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -103,6 +107,9 @@ export function maxKeyDerivationRounds(candidateKeys: string[][], fds: FD[]): nu
   return candidateKeys.reduce((max, key) => Math.max(max, closureRounds(key, fds)), 0);
 }
 
+/**
+ * Computes how many attributes are shared across the LHS sets.
+ */
 export function computeLHSOverlapRatio(allAttrs: string[], fds: FD[]): number {
   const freq = new Map<string, number>();
   for (const fd of fds)
@@ -111,6 +118,13 @@ export function computeLHSOverlapRatio(allAttrs: string[], fds: FD[]): number {
 
   const overlapping = allAttrs.filter(a => (freq.get(a) ?? 0) > 1).length;
   return overlapping / allAttrs.length;
+}
+
+export function computeKeyInLHSRatio(candidateKeys: string[][], fds: FD[]): number {
+  const lhsSignatures = new Set(fds.map(fd => keySignature(fd.lhs)));
+  const overlaps = candidateKeys.reduce((acc, key) => lhsSignatures.has(keySignature(key)) ? acc + 1 : acc, 0);
+  
+  return overlaps / candidateKeys.length
 }
 
 /**
@@ -191,7 +205,6 @@ function classifyRedundantFDs(
 
 
     if (!fd.rhs.every(attr => closure.has(attr))) continue; // checks if RHS is subset of closure
-    
     if (lhsContainsCandidateKey(fd.lhs, candidateKeys)) {
       chainShortcutting++; // student can skip transitive steps — simplifies
     } else {
@@ -212,8 +225,8 @@ export function computeScoredProfile(
 ): ScoredProfile {
   const derivationRounds = maxKeyDerivationRounds(candidateKeys, fds);
   const derivationDepthRatio = derivationRounds / allAttrs.length;
-  const lhsOverlapRatio = computeLHSOverlapRatio(allAttrs, fds);
-  const nearMisses = countNearMisses(allAttrs, fds, candidateKeys);
+  const keyInLHSRatio = computeKeyInLHSRatio(candidateKeys, fds);
+//  const nearMisses = countNearMisses(allAttrs, fds, candidateKeys);
 
   const { meaningful: meaningfulRedundantLHS, keyExposing: keyExposingRedundantLHS }
     = classifyRedundantLHS(fds, candidateKeys);
@@ -225,19 +238,17 @@ export function computeScoredProfile(
     meaningfulRedundantLHS   * SCORE_WEIGHTS.meaningfulRedundantLHS  +
     keyExposingRedundantLHS  * SCORE_WEIGHTS.keyExposingRedundantLHS +
     distractingRedundantFDs  * SCORE_WEIGHTS.distractingRedundantFD  +
-    chainShortcuttingFDs     * SCORE_WEIGHTS.chainShortcuttingFD     +
-    nearMisses               * SCORE_WEIGHTS.nearMiss;
+    chainShortcuttingFDs     * SCORE_WEIGHTS.chainShortcuttingFD;
 
   const normalisedScore = fds.length > 0 ? rawScore / fds.length : 0;
 
   return {
     derivationDepthRatio,
-    lhsOverlapRatio,
+    keyInLHSRatio,
     meaningfulRedundantLHS,
     keyExposingRedundantLHS,
     distractingRedundantFDs,
     chainShortcuttingFDs,
-    nearMisses,
     rawScore,
     normalisedScore,
   };
@@ -254,10 +265,10 @@ export function passesStructuralProfile(
 
   const profile = computeScoredProfile(allAttrs, fds, candidateKeys);
 
-  // Hard limits — reject immediately if either fails
   if (profile.derivationDepthRatio < threshold.hardLimits.minDerivationDepthRatio) return false;
-  if (profile.lhsOverlapRatio      < threshold.hardLimits.minLHSOverlapRatio)      return false;
+  if (profile.keyInLHSRatio        > threshold.hardLimits.keyInLHSRatio)           return false;
 
   // Score gate — must accumulate enough net difficulty
-  return profile.normalisedScore >= threshold.scoreThreshold.minScore;
+  return profile.normalisedScore >= threshold.scoreThreshold.minScore 
+    && profile.normalisedScore <= threshold.scoreThreshold.maxScore;
 }
