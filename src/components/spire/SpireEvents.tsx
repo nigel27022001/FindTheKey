@@ -1,5 +1,5 @@
 import React from "react";
-import { Store, Scroll, FlaskConical, FastForward, Coins, Gem, CircleHelp, Bug, Ghost, Tent, HeartPlus, HeartMinus } from "lucide-react";
+import { Store, Scroll, FlaskConical, FastForward, Coins, Gem, CircleHelp, Bug, Ghost, Tent, HeartPlus, HeartMinus, Crown } from "lucide-react";
 import type { useGameState } from "../../hooks/useGameState";
 import * as sfx from "../../lib/sfx";
 import type { EnemyConfig } from "../../lib/spireMap";
@@ -322,6 +322,16 @@ export function HowToPlayModal({ setShowHelp }: { setShowHelp: (show: boolean) =
 
               <div className="flex gap-4">
                 <div className="w-12 h-12 shrink-0 bg-gray-50 border-2 border-gray-300 rounded-full flex items-center justify-center">
+                  <Crown size={24} className="text-purple-700" />
+                </div>
+                <div>
+                  <strong className="block text-purple-700">Final Boss</strong>
+                  <span className="text-sm text-gray-600">The ultimate test at the top of the Spire!</span>
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <div className="w-12 h-12 shrink-0 bg-gray-50 border-2 border-gray-300 rounded-full flex items-center justify-center">
                   <Tent size={24} className="text-orange-600" />
                 </div>
                 <div>
@@ -393,12 +403,12 @@ export function HowToPlayModal({ setShowHelp }: { setShowHelp: (show: boolean) =
   );
 }
 
-export function SpireVictoryModal({ 
-  score, 
-  onBack 
-}: { 
-  score: number; 
-  onBack: () => void; 
+export function SpireVictoryModal({
+  score,
+  onBack
+}: {
+  score: number;
+  onBack: () => void;
 }) {
   const [name, setName] = React.useState("");
 
@@ -412,7 +422,7 @@ export function SpireVictoryModal({
       <div className="bg-white border-4 border-amber-400 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-fade-up">
         <div className="text-4xl font-black text-amber-500 mb-2 font-serif tracking-widest uppercase mt-4">Spire Conquered!</div>
         <div className="text-sm text-slate-500 mb-6 font-serif italic">The anomalies have been purged. You are the ultimate candidate key.</div>
-        
+
         <div className="bg-amber-50 p-4 rounded-xl mb-6 border border-amber-200">
           <div className="text-xs uppercase font-bold text-amber-700 tracking-wider">Total Score</div>
           <div className="text-4xl font-mono font-black text-amber-900">{score.toLocaleString()} PTS</div>

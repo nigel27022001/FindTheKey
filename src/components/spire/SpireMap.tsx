@@ -13,7 +13,7 @@ export function SpireMap({ map, currentNode, onNodeClick }: SpireMapProps) {
 
   return (
     <div className="max-w-2xl w-full mx-auto flex flex-col items-center">
-      <h2 className="text-xl font-extrabold text-center text-slate-800 mb-2 flex items-center justify-center gap-2">
+      <h2 className="text-xl font-extrabold text-center text-slate-800 mb-2 flex items-center justify-center gap-2 pt-5">
         <Scroll size={22} className="text-indigo-600" />
         Spire of FDs
       </h2>

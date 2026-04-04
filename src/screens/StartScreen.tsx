@@ -37,7 +37,7 @@ export const StartScreen: FC<StartScreenProps> = ({ difficulty, onSelectDifficul
             <Key size={48} strokeWidth={2} className="text-yellow-600" />
           </div>
           <h1 className="text-4xl font-black text-gray-800 mb-3 tracking-tight">
-            Spire of Forms
+            Spire of FDs
           </h1>
           <p className="text-base text-gray-500 leading-relaxed font-serif">
             Ascend the Spire to restore{" "}
