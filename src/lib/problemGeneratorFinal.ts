@@ -23,7 +23,7 @@ interface DifficultyConfig {
 export const DIFFICULTY_CONFIG: Record<Difficulty, DifficultyConfig> = {
   easy:   { minA: 3, maxA: 4, minF: 2, maxF: 3, minK: 1, maxK: 1, minKL: 1, maxKL: 1},
   medium: { minA: 4, maxA: 5, minF: 3, maxF: 4, minK: 1, maxK: 2, minKL: 1, maxKL: 2},
-  hard:   { minA: 5, maxA: 6, minF: 5, maxF: 5, minK: 2, maxK: 3, minKL: 2, maxKL: 3},
+  hard:   { minA: 5, maxA: 6, minF: 4, maxF: 5, minK: 2, maxK: 3, minKL: 2, maxKL: 3},
   expert: { minA: 6, maxA: 7, minF: 6, maxF: 7, minK: 2, maxK: 3, minKL: 2, maxKL: 3},
 
 };
@@ -31,8 +31,8 @@ export const DIFFICULTY_CONFIG: Record<Difficulty, DifficultyConfig> = {
 export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
   easy: "3–4 attrs · 2–3 FDs · exactly 1 key",
   medium: "4–5 attrs · 3–4 FDs · 1–2 keys",
-  hard: "5–6 attrs · 4–6 FDs · 2–3 keys · deeper chains",
-  expert: "6–7 attrs · 5–8 FDs · 2–3 keys · high overlap/noise",
+  hard: "5–6 attrs · 4–5 FDs · 2–3 keys · deeper chains",
+  expert: "6–7 attrs · 6–7 FDs · 2–3 keys · high overlap/noise",
 };
 
 export const HINT_COUNTS: Record<Difficulty, number> = {
