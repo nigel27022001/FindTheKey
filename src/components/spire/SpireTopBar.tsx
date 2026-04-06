@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { CircleHelp, Timer, Heart, Scroll, FlaskConical, FastForward, Coins, Volume2, VolumeX } from "lucide-react";
 import * as sfx from "../../lib/sfx";
 import type { useGameState } from "../../hooks/useGameState";
@@ -10,6 +10,8 @@ interface SpireTopBarProps {
   playerHealth: number;
   playerMaxHealth: number;
   gold: number;
+  score: number;
+  combo: number;
   game: ReturnType<typeof useGameState>;
   muted: boolean;
   setMuted: (muted: boolean) => void;
@@ -22,6 +24,8 @@ export function SpireTopBar({
   playerHealth,
   playerMaxHealth,
   gold,
+  score,
+  combo,
   game,
   muted,
   setMuted,
@@ -119,6 +123,13 @@ export function SpireTopBar({
                 </div>
               );
             })}
+          </div>
+          <div className="flex items-center gap-1.5 sm:gap-2 text-indigo-700 font-bold border-l border-gray-200 pl-3 sm:pl-4">
+            <span className="text-xs sm:text-sm uppercase tracking-wider text-indigo-500">Pts</span>
+            <span className="text-sm sm:text-lg whitespace-nowrap">{score}</span>
+          </div>
+          <div className={`flex items-center gap-1.5 sm:gap-2 font-black border-l border-gray-200 pl-3 sm:pl-4 ${combo >= 2.0 ? 'text-amber-500 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]' : 'text-slate-500'}`}>
+            <span className="text-sm sm:text-lg whitespace-nowrap">{combo.toFixed(1)}x</span>
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2 text-yellow-600 font-bold border-l border-gray-200 pl-3 sm:pl-4">
             <Coins size={18} className="fill-yellow-400 text-yellow-500 sm:w-6 sm:h-6" />

@@ -6,8 +6,8 @@ import { passesStructuralProfile } from "./constraintAlgorithms";
 export type Difficulty = "easy" | "medium" | "hard" | "expert";
 
 export interface Problem {
-  allAttrs:      string[];
-  fds:           FD[];
+  allAttrs: string[];
+  fds: FD[];
   candidateKeys: string[][];
 }
 
@@ -25,12 +25,13 @@ export const DIFFICULTY_CONFIG: Record<Difficulty, DifficultyConfig> = {
   medium: { minA: 4, maxA: 5, minF: 3, maxF: 4, minK: 1, maxK: 2, minKL: 1, maxKL: 2},
   hard:   { minA: 5, maxA: 6, minF: 5, maxF: 5, minK: 2, maxK: 3, minKL: 2, maxKL: 3},
   expert: { minA: 6, maxA: 7, minF: 6, maxF: 7, minK: 2, maxK: 3, minKL: 2, maxKL: 3},
+
 };
 
 export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
-  easy:   "3–4 attrs · 2–3 FDs · exactly 1 key",
+  easy: "3–4 attrs · 2–3 FDs · exactly 1 key",
   medium: "4–5 attrs · 3–4 FDs · 1–2 keys",
-  hard:   "5–6 attrs · 4–6 FDs · 2–3 keys · deeper chains",
+  hard: "5–6 attrs · 4–6 FDs · 2–3 keys · deeper chains",
   expert: "6–7 attrs · 5–8 FDs · 2–3 keys · high overlap/noise",
 };
 
@@ -102,8 +103,6 @@ function allAttrsReachable(allAttrs: string[], fds: FD[]): boolean {
   return allAttrs.every(a => onRHS.has(a) || onLHS.has(a));
 }
 
-// ─── Fallback ─────────────────────────────────────────────────────────────────
-
 export function buildFallbackProblem(diff: Difficulty): Problem {
   if (diff === "easy") {
     const allAttrs = ["A", "B", "C"];
@@ -141,7 +140,6 @@ export function buildFallbackProblem(diff: Difficulty): Problem {
   return { allAttrs, fds, candidateKeys: findAllCandidateKeys(allAttrs, fds) };
 }
 
-// ─── Generator ────────────────────────────────────────────────────────────────
 
 export function generateProblem(diff: Difficulty): Problem {
   const cfg = DIFFICULTY_CONFIG[diff];
@@ -168,7 +166,6 @@ export function generateProblem(diff: Difficulty): Problem {
 
       if (!seen.has(key)) { seen.add(key); fds.push({ lhs, rhs }); }
     }
-  
     if (diff !== "easy" && !allAttrsReachable(allAttrs, fds)) continue;
     const candidateKeys = findAllCandidateKeys(allAttrs, fds);
 

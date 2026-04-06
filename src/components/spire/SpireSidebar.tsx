@@ -1,4 +1,3 @@
-import React from "react";
 import { Bug, Ghost, Crown, Flame, Sword, Shield, Skull, Rat, Droplet, UserKey } from "lucide-react";
 import type { EnemyConfig } from "../../lib/spireMap";
 

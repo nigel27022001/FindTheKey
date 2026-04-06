@@ -435,21 +435,21 @@ export function sfxCorrect() {
    ═══════════════════════════════════════════ */
 
 let bossBgm: HTMLAudioElement | null = null;
-let _bossPlaying = false;
+// let _bossPlaying = false;
 
 /** Start boss BGM — loops until stopped */
 export function playBossBgm() {
-  _bossPlaying = true;
+  // _bossPlaying = true;
   if (bossBgm) { bossBgm.pause(); bossBgm = null; }
   bossBgm = new Audio("/bgm-boss.mp3");
   bossBgm.loop = true;
   bossBgm.volume = _muted ? 0 : 0.35;
-  bossBgm.play().catch(() => {});
+  bossBgm.play().catch(() => { });
 }
 
 /** Stop boss BGM with a short fade-out */
 export function stopBossBgm() {
-  _bossPlaying = false;
+  // _bossPlaying = false;
   if (!bossBgm) return;
   const audio = bossBgm;
   bossBgm = null;
