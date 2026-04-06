@@ -5,6 +5,11 @@ import * as sfx from "../lib/sfx";
 import { DIFF_TEXT } from "../lib/difficultyColors";
 import type { SpireNode, EnemyConfig } from "../lib/spireMap";
 import { useGameState } from "../hooks/useGameState";
+import {
+  loadSpireSave,
+  clearSpireSave,
+  useSpirePersistence,
+} from "../hooks/useSpirePersistence";
 
 import { SchemaPanel } from "./SchemaPanel";
 import { FDPanel } from "./FDPanel";
@@ -48,6 +53,9 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
   const [battleLog, setBattleLog] = useState<string[]>([]);
   const [battleTimer, setBattleTimer] = useState<number | null>(null);
 
+  // States to reload problem
+  const savedRunRef = useRef(loadSpireSave());
+  const savedRun = savedRunRef.current;
   const [score, setScore] = useState<number>(0);
   const [combo, setCombo] = useState<number>(1.0);
   const [isSpireComplete, setIsSpireComplete] = useState<boolean>(false);
@@ -75,15 +83,35 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
   const initialized = useRef(false);
   useEffect(() => {
     if (!initialized.current) {
+      if (savedRun) {
+        // ── Resume an existing run ────────────────────────────────────────
+        // Map + health + gold + battleLog are already set via lazy initialisers.
+        // Restore game-hook stats (score, streak, round, potions).
+        game.restoreStats({
+          score:       savedRun.score,
+          streak:      savedRun.streak,
+          round:       savedRun.round,
+          hintsLeft:   savedRun.hintsLeft,
+          closureUses: savedRun.closureUses,
+          skipUses:    savedRun.skipUses,
+        });
+        setMap(savedRun.map);
+        setPlayerHealth(savedRun.playerHealth);
+        setPlayerMaxHealth(savedRun.playerMaxHealth);
+        setGold(savedRun.gold);
+        setBattleLog(savedRun.battleLog);
+        appendLog("Run resumed from save.");
+      } else {
+        // ── Fresh run ─────────────────────────────────────────────────────
       setMap(generateSpireMap(15, 5));
       appendLog("Run started. Map generated.");
       game.clearPotions();
       setScore(0);
       setCombo(1.0);
       setIsSpireComplete(false);
+      }
       initialized.current = true;
-    }
-  }, []);
+    }  }, []);
 
   const handleNodeClick = (node: SpireNode) => {
     if (currentNode?.id === node.id) return;
@@ -395,7 +423,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
   };
 
   useEffect(() => {
-    if (activeEnemy && game.problemSolved && currentProblem) {
+    if (activeEnemy && game.allSolved && currentProblem) {
       const timeRemaining = battleTimer !== null ? battleTimer : currentProblem.timer;
       const weightedDamage = Math.max(1, Math.round(currentProblem.damage * (timeRemaining / currentProblem.timer)));
 
@@ -441,7 +469,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
         appendLog("Enemy defeated.");
       }
     }
-  }, [game.problemSolved]);
+  }, [game.allSolved]);
 
   useEffect(() => {
     if (activeEnemy && game.gameOver) {
@@ -487,8 +515,27 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
 
   // Game over sound
   useEffect(() => {
-    if (playerHealth <= 0) { sfx.stopBossBgm(); sfx.sfxGameOver(); }
+    if (playerHealth <= 0) { 
+      sfx.stopBossBgm(); 
+      sfx.sfxGameOver();
+      clearSpireSave();
+    }
   }, [playerHealth <= 0]);
+
+  // saves game to local storage
+  useSpirePersistence({
+    map,
+    playerHealth,
+    playerMaxHealth,
+    gold,
+    battleLog,
+    score:       game.score,
+    streak:      game.streak,
+    round:       game.round,
+    hintsLeft:   game.hintsLeft,
+    closureUses: game.closureUses,
+    skipUses:    game.skipUses,
+  });
 
   return (
     <div className="flex h-screen bg-gray-50 text-gray-900 font-mono">
