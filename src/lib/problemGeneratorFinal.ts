@@ -50,22 +50,39 @@ function isValidNumberOfKeys(candidateKeys: string[][], cfg: DifficultyConfig) {
   return nk <= cfg.maxK && nk >= cfg.minK;
 }
 
+function generateWeightedArray(percentages: number[]): number[] {
+  return percentages.flatMap((pct, ind) => Array(pct).fill(ind + 1));
+}
+
 // ─── LHS / RHS sampling ───────────────────────────────────────────────────────
 
 const FD_PERCENTAGE_LHS: Record<Difficulty, number[]> = {
-  easy:   [1],
-  medium: [1, 2],
-  hard:   [1, 1, 2, 2, 2, 2, 2, 3, 3, 3],
-  expert: [1, 2, 2, 2, 2, 2, 3, 3, 3, 4, 4],
+  easy:   generateWeightedArray([100]),
+  medium: generateWeightedArray([50, 50]),
+  hard:   generateWeightedArray([20, 50, 30]),
+  expert: generateWeightedArray([10, 50, 30, 10]), 
 };
 
 const FD_PERCENTAGE_RHS: Record<Difficulty, Record<number, number[]>> = {
-  easy:   { 1: [1] },
-  medium: { 1: [1, 2], 2: [1, 2] },
-  hard:   { 1: [1], 2: [1, 1, 2, 2, 3], 3: [1, 1, 1, 2] },
-  expert: { 1: [1, 1, 1, 2], 2: [1, 1, 1, 2, 2], 3: [1, 1, 1, 2, 2], 4: [1, 1, 1, 2, 3] },
+  easy: {
+    1: generateWeightedArray([100]),
+  },
+  medium: {
+    1: generateWeightedArray([50, 50]),
+    2: generateWeightedArray([50, 50]),
+  },
+  hard: {
+    1: generateWeightedArray([100]),
+    2: generateWeightedArray([30, 50, 20]),  
+    3: generateWeightedArray([50, 30, 20]),
+  },
+  expert: {
+    1: generateWeightedArray([60, 40]),
+    2: generateWeightedArray([50, 30, 20]),
+    3: generateWeightedArray([50, 30, 20]),
+    4: generateWeightedArray([50, 30, 20]),
+  },
 };
-
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
 const ATTR_POOL = "ABCDEFGHI".split("");
