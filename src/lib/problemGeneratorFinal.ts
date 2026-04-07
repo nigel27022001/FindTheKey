@@ -55,13 +55,75 @@ function generateWeightedArray(percentages: number[]): number[] {
   return percentages.flatMap((pct, ind) => Array(pct).fill(ind + 1));
 }
 
+function allAttrsReachable(allAttrs: string[], fds: FD[]): boolean {
+  const onRHS = new Set(fds.flatMap(fd => fd.rhs));
+  const onLHS = new Set(fds.flatMap(fd => fd.lhs));
+  return allAttrs.every(a => onRHS.has(a) || onLHS.has(a));
+}
+
+export function findRHSOnlyAttributes(allAttrs: string[], fds: FD[]): string[] {
+  const onLHS = new Set(fds.flatMap(fd => fd.lhs));
+  return allAttrs.filter(a => !onLHS.has(a));
+}
+/** updates FDs to include attributes that appear only on RHS. Return empty array if fail */
+function obfuscateRHSOnlyAttributes(fds: FD[], rhsOnlyAttrs: string[]): FD[] {
+  if (rhsOnlyAttrs.length === 0) return fds;
+
+  const updated: FD[] = fds.map(fd => ({ lhs: [...fd.lhs], rhs: [...fd.rhs] }));
+
+  for (const attr of rhsOnlyAttrs) {
+    const eligible = updated
+    .map((fd, idx) => ({ fd, idx }))
+    .filter(({ fd }) => !fd.lhs.includes(attr) && !fd.rhs.includes(attr));
+
+    if (eligible.length === 0) return [];
+
+    const { fd, idx } = eligible[randInt(0, eligible.length - 1)];
+
+    updated[idx] = {
+      lhs: [...fd.lhs, attr].sort(),
+      rhs: fd.rhs
+    };
+  }
+
+  return updated;
+}
+
+export function findLHSOnlyAttributes(allAttrs: string[], fds: FD[]): string[] {
+  const onRHS = new Set(fds.flatMap(fd => fd.rhs));
+  return allAttrs.filter(a => !onRHS.has(a));
+}
+
+function obfuscateLHSOnlyAttributes(fds: FD[], lhsOnlyAttrs: string[]): FD[] {
+  if (lhsOnlyAttrs.length === 0) return fds;
+
+  const updated: FD[] = fds.map(fd => ({ lhs: [...fd.lhs], rhs: [...fd.rhs] }));
+
+  for (const attr of lhsOnlyAttrs) {
+    const eligible = updated
+      .map((fd, idx) => ({ fd, idx }))
+      .filter(({ fd }) => !fd.lhs.includes(attr) && !fd.rhs.includes(attr));
+
+    if (eligible.length === 0) return [];
+
+    const { fd, idx } = eligible[randInt(0, eligible.length - 1)];
+
+    updated[idx] = {
+      lhs: fd.lhs,
+      rhs: [...fd.rhs, attr].sort(),
+    };
+  }
+
+  return updated;
+}
+
 // ─── LHS / RHS sampling ───────────────────────────────────────────────────────
 
 const FD_PERCENTAGE_LHS: Record<Difficulty, number[]> = {
   easy:   generateWeightedArray([100]),
   medium: generateWeightedArray([50, 50]),
   hard:   generateWeightedArray([20, 50, 30]),
-  expert: generateWeightedArray([10, 50, 30, 10]), 
+  expert: generateWeightedArray([10, 40, 30, 20]), 
 };
 
 const FD_PERCENTAGE_RHS: Record<Difficulty, Record<number, number[]>> = {
@@ -79,8 +141,8 @@ const FD_PERCENTAGE_RHS: Record<Difficulty, Record<number, number[]>> = {
   },
   expert: {
     1: generateWeightedArray([60, 40]),
-    2: generateWeightedArray([50, 30, 20]),
-    3: generateWeightedArray([50, 30, 20]),
+    2: generateWeightedArray([30, 30, 20, 20]),
+    3: generateWeightedArray([30, 30, 20, 20]),
     4: generateWeightedArray([50, 30, 20]),
   },
 };
@@ -97,13 +159,8 @@ const pick = <T>(arr: T[], k: number): T[] => shuffle(arr).slice(0, k);
 
 const pickOne = <T>(arr: T[]): T => arr[randInt(0, arr.length - 1)];
 
-function allAttrsReachable(allAttrs: string[], fds: FD[]): boolean {
-  const onRHS = new Set(fds.flatMap(fd => fd.rhs));
-  const onLHS = new Set(fds.flatMap(fd => fd.lhs));
-  return allAttrs.every(a => onRHS.has(a) || onLHS.has(a));
-}
-
 export function buildFallbackProblem(diff: Difficulty): Problem {
+  console.log("fallback");
   if (diff === "easy") {
     const allAttrs = ["A", "B", "C"];
     const fds: FD[] = [{ lhs: ["A"], rhs: ["B", "C"] }];
@@ -149,7 +206,7 @@ export function generateProblem(diff: Difficulty): Problem {
     const allAttrs = ATTR_POOL.slice(0, numAttrs);
 
     const numFDs   = randInt(cfg.minF, cfg.maxF);
-    const fds: FD[] = [];
+    let fds: FD[] = [];
     const seen = new Set<string>();
 
     for (let i = 0; i < numFDs * 3 && fds.length < numFDs; i++) {
@@ -167,6 +224,24 @@ export function generateProblem(diff: Difficulty): Problem {
       if (!seen.has(key)) { seen.add(key); fds.push({ lhs, rhs }); }
     }
     if (diff !== "easy" && !allAttrsReachable(allAttrs, fds)) continue;
+
+    if (diff !== "easy") {
+      const rhsOnly = findRHSOnlyAttributes(allAttrs, fds);
+      if (rhsOnly.length > 0) {
+        fds = obfuscateRHSOnlyAttributes(fds, rhsOnly);
+        if (fds.length == 0) continue;
+      }
+    }
+
+    if (diff == "hard" || diff == "expert") {
+      const lhsOnly = findLHSOnlyAttributes(allAttrs, fds);
+      if (lhsOnly.length > 0) {
+        fds = obfuscateLHSOnlyAttributes(fds, lhsOnly);
+        if (fds.length == 0) continue;
+      }
+
+    }
+ 
     const candidateKeys = findAllCandidateKeys(allAttrs, fds);
 
     if (
