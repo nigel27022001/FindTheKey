@@ -17,9 +17,20 @@ interface StartScreenProps {
   onSelectDifficulty: (diff: Difficulty) => void;
   onStart: () => void;
   onStartSpire?: () => void;
+  onContinueSpire?: () => void;
+  onStartNewSpire?: () => void;
+  hasSavedSpireRun?: boolean;
 }
 
-export const StartScreen: FC<StartScreenProps> = ({ difficulty, onSelectDifficulty, onStart, onStartSpire }) => {
+export const StartScreen: FC<StartScreenProps> = ({
+  difficulty,
+  onSelectDifficulty,
+  onStart,
+  onStartSpire,
+  onContinueSpire,
+  onStartNewSpire,
+  hasSavedSpireRun = false,
+}) => {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
 
   useEffect(() => {
@@ -46,7 +57,7 @@ export const StartScreen: FC<StartScreenProps> = ({ difficulty, onSelectDifficul
         </div>
 
         <div className="flex flex-col gap-4 mb-8">
-          {onStartSpire && (
+          {onStartSpire && !hasSavedSpireRun && (
             <button
               onClick={onStartSpire}
               className="w-full font-serif text-2xl font-black py-5 px-6 rounded-2xl
@@ -56,6 +67,29 @@ export const StartScreen: FC<StartScreenProps> = ({ difficulty, onSelectDifficul
               <Swords size={28} />
               Enter the Spire
             </button>
+          )}
+
+          {hasSavedSpireRun && (
+            <>
+              <button
+                onClick={onContinueSpire ?? onStartSpire}
+                className="w-full font-serif text-2xl font-black py-5 px-6 rounded-2xl
+                         bg-slate-800 text-white shadow-xl border-b-8 border-slate-900 flex items-center justify-center gap-3
+                         hover:bg-slate-700 hover:border-b-4 hover:translate-y-1 active:border-b-0 active:translate-y-2 transition-all tracking-wider"
+              >
+                <Swords size={28} />
+                Continue Run
+              </button>
+
+              <button
+                onClick={onStartNewSpire ?? onStartSpire}
+                className="w-full font-serif text-xl font-black py-4 px-6 rounded-2xl
+                         bg-amber-50 text-amber-800 shadow-md border-2 border-amber-400 flex items-center justify-center gap-3
+                         hover:bg-amber-100 active:scale-[0.99] transition-all tracking-wide"
+              >
+                Start New Run
+              </button>
+            </>
           )}
         </div>
 

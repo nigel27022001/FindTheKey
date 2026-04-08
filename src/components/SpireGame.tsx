@@ -99,6 +99,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
         setPlayerHealth(savedRun.playerHealth);
         setPlayerMaxHealth(savedRun.playerMaxHealth);
         setGold(savedRun.gold);
+        setScore(savedRun.score);
         setBattleLog(savedRun.battleLog);
         appendLog("Run resumed from save.");
       } else {
@@ -529,7 +530,7 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
     playerMaxHealth,
     gold,
     battleLog,
-    score:       game.score,
+    score,
     streak:      game.streak,
     round:       game.round,
     hintsLeft:   game.hintsLeft,
