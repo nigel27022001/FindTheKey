@@ -1,5 +1,5 @@
 // constraintAlgorithms.ts
-import { computeClosure, findAllCandidateKeys, getCombinations, lhsContainsCandidateKey } from "./fdAlgorithms";
+import { computeClosure,  lhsContainsCandidateKey } from "./fdAlgorithms";
 import type { FD } from "./fdAlgorithms";
 import type { Difficulty } from "./problemGenerator";
 
@@ -15,7 +15,7 @@ export interface ScoreThreshold {
 }
 
 export interface StructuralThreshold {
-  hardLimits:     HardLimits;
+  hardLimits: HardLimits;
   scoreThreshold: ScoreThreshold;
 }
 
@@ -31,7 +31,7 @@ export interface ScoredProfile {
   chainShortcuttingFDs:      number; // simplifying  — LHS contains a key
 
   // Final
-  rawScore:        number;
+  rawScore: number;
   normalisedScore: number; // rawScore / fds.length
 }
 
@@ -107,7 +107,7 @@ export function computeLHSOverlapRatio(allAttrs: string[], fds: FD[]): number {
 export function computeKeyInLHSRatio(candidateKeys: string[][], fds: FD[]): number {
   const lhsSignatures = new Set(fds.map(fd => keySignature(fd.lhs)));
   const overlaps = candidateKeys.reduce((acc, key) => lhsSignatures.has(keySignature(key)) ? acc + 1 : acc, 0);
-  
+
   return overlaps / candidateKeys.length
 }
 
