@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback, useRef } from "react";
-import { generateProblem } from "../lib/problemGeneratorFinal";
+import { generateProblem } from "../lib/problemGenerator";
 import type { Problem, Difficulty } from "../lib/problemGenerator";
 import {
   computeClosure,

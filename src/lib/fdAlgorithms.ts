@@ -42,6 +42,11 @@ export function isCandidateKey(attrs: string[], allAttrs: string[], fds: FD[]): 
   return true;
 }
 
+/** Returns true if any candidate key is a subset of the given LHS */
+export function lhsContainsCandidateKey(lhs: string[], candidateKeys: string[][]): boolean {
+  return candidateKeys.some(key => lhs.length == key.length && key.every(attr => lhs.includes(attr)));
+}
+
 /** Enumerate all k-element combinations of arr. */
 export function getCombinations<T>(arr: T[], k: number): T[][] {
   if (k === 0) return [[]];
