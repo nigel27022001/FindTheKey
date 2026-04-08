@@ -1,7 +1,7 @@
 // problemGenerator.test.ts
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import * as ProblemGenerator from "./problemGenerator";
-import { generateProblem, buildFallbackProblem } from "./problemGenerator";
+import { generateProblem } from "./problemGenerator";
 import type { Difficulty } from "./problemGenerator";
 
 const RUNS = 100;

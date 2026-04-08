@@ -1,5 +1,5 @@
 // problemGenerator.ts
-import { computeClosure, findAllCandidateKeys, lhsContainsCandidateKey } from "./fdAlgorithms";
+import { findAllCandidateKeys } from "./fdAlgorithms";
 import type { FD } from "./fdAlgorithms";
 import { passesStructuralProfile } from "./constraintAlgorithms";
 
@@ -21,10 +21,10 @@ interface DifficultyConfig {
 }
 
 export const DIFFICULTY_CONFIG: Record<Difficulty, DifficultyConfig> = {
-  easy:   { minA: 3, maxA: 4, minF: 2, maxF: 3, minK: 1, maxK: 1, minKL: 1, maxKL: 1},
-  medium: { minA: 4, maxA: 5, minF: 3, maxF: 4, minK: 1, maxK: 2, minKL: 1, maxKL: 2},
-  hard:   { minA: 5, maxA: 6, minF: 5, maxF: 6, minK: 2, maxK: 3, minKL: 2, maxKL: 3},
-  expert: { minA: 6, maxA: 6, minF: 6, maxF: 7, minK: 2, maxK: 3, minKL: 2, maxKL: 3},
+  easy: { minA: 3, maxA: 4, minF: 2, maxF: 3, minK: 1, maxK: 1, minKL: 1, maxKL: 1 },
+  medium: { minA: 4, maxA: 5, minF: 3, maxF: 4, minK: 1, maxK: 2, minKL: 1, maxKL: 2 },
+  hard: { minA: 5, maxA: 6, minF: 5, maxF: 6, minK: 2, maxK: 3, minKL: 2, maxKL: 3 },
+  expert: { minA: 6, maxA: 6, minF: 6, maxF: 7, minK: 2, maxK: 3, minKL: 2, maxKL: 3 },
 
 };
 
@@ -42,7 +42,7 @@ export const HINT_COUNTS: Record<Difficulty, number> = {
 // Utils
 function isValidKeyLength(candidateKeys: string[][], cfg: DifficultyConfig) {
   return candidateKeys.reduce(
-      (acc, key) => acc && key.length >= cfg.minKL && key.length <= cfg.maxKL, true)
+    (acc, key) => acc && key.length >= cfg.minKL && key.length <= cfg.maxKL, true)
 }
 
 function isValidNumberOfKeys(candidateKeys: string[][], cfg: DifficultyConfig) {
@@ -72,8 +72,8 @@ function obfuscateRHSOnlyAttributes(fds: FD[], rhsOnlyAttrs: string[]): FD[] {
 
   for (const attr of rhsOnlyAttrs) {
     const eligible = updated
-    .map((fd, idx) => ({ fd, idx }))
-    .filter(({ fd }) => !fd.lhs.includes(attr) && !fd.rhs.includes(attr));
+      .map((fd, idx) => ({ fd, idx }))
+      .filter(({ fd }) => !fd.lhs.includes(attr) && !fd.rhs.includes(attr));
 
     if (eligible.length === 0) return [];
 
@@ -117,10 +117,10 @@ function obfuscateLHSOnlyAttributes(fds: FD[], lhsOnlyAttrs: string[]): FD[] {
 }
 
 const FD_PERCENTAGE_LHS: Record<Difficulty, number[]> = {
-  easy:   generateWeightedArray([100]),
+  easy: generateWeightedArray([100]),
   medium: generateWeightedArray([50, 50]),
-  hard:   generateWeightedArray([20, 50, 30]),
-  expert: generateWeightedArray([20, 30, 30, 20]), 
+  hard: generateWeightedArray([20, 50, 30]),
+  expert: generateWeightedArray([20, 30, 30, 20]),
 };
 
 const FD_PERCENTAGE_RHS: Record<Difficulty, Record<number, number[]>> = {
@@ -133,7 +133,7 @@ const FD_PERCENTAGE_RHS: Record<Difficulty, Record<number, number[]>> = {
   },
   hard: {
     1: generateWeightedArray([100]),
-    2: generateWeightedArray([30, 50, 20]),  
+    2: generateWeightedArray([30, 50, 20]),
     3: generateWeightedArray([50, 30, 20]),
   },
   expert: {
@@ -245,21 +245,21 @@ export function generateProblem(diff: Difficulty): Problem {
     const numAttrs = randInt(cfg.minA, cfg.maxA);
     const allAttrs = ATTR_POOL.slice(0, numAttrs);
 
-    const numFDs   = randInt(cfg.minF, cfg.maxF);
+    const numFDs = randInt(cfg.minF, cfg.maxF);
     let fds: FD[] = [];
     const seen = new Set<string>();
 
     for (let i = 0; i < numFDs * 3 && fds.length < numFDs; i++) {
       const lhsSize = pickOne(FD_PERCENTAGE_LHS[diff]);
-      const lhs     = pick(allAttrs, lhsSize).sort();
+      const lhs = pick(allAttrs, lhsSize).sort();
       const remaining = allAttrs.filter(a => !lhs.includes(a));
       if (!remaining.length) continue;
 
       // Fallback RHS table entry — if lhsSize has no entry use size 1
       const rhsTable = FD_PERCENTAGE_RHS[diff][lhsSize] ?? [1];
-      const rhsSize  = pickOne(rhsTable);
-      const rhs      = pick(remaining, Math.min(rhsSize, remaining.length)).sort();
-      const key      = lhs.join("") + "->" + rhs.join("");
+      const rhsSize = pickOne(rhsTable);
+      const rhs = pick(remaining, Math.min(rhsSize, remaining.length)).sort();
+      const key = lhs.join("") + "->" + rhs.join("");
 
       if (!seen.has(key)) { seen.add(key); fds.push({ lhs, rhs }); }
     }
@@ -272,7 +272,7 @@ export function generateProblem(diff: Difficulty): Problem {
     fds = newFds;
 
     if (
-      isValidKeyLength(candidateKeys, cfg) && 
+      isValidKeyLength(candidateKeys, cfg) &&
       isValidNumberOfKeys(candidateKeys, cfg) &&
       candidateKeys.some(k => k.length < numAttrs) &&
       passesStructuralProfile(diff, allAttrs, fds, candidateKeys)
