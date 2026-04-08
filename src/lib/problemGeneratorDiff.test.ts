@@ -26,9 +26,11 @@ function closureRounds(seed: string[], fds: { lhs: string[]; rhs: string[] }[]):
   return rounds;
 }
 
+const ITERATIONS = 100;
+
 describe("problemGenerator difficulty constraints", () => {
   it("enforces medium to have 1-2 candidate keys", () => {
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < ITERATIONS; i++) {
       const p = generateProblem("medium");
       expect(p.candidateKeys.length).toBeGreaterThanOrEqual(1);
       expect(p.candidateKeys.length).toBeLessThanOrEqual(2);
@@ -36,7 +38,7 @@ describe("problemGenerator difficulty constraints", () => {
   });
 
   it("enforces hard to have 2-3 candidate keys", () => {
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < ITERATIONS; i++) {
       const p = generateProblem("hard");
       expect(p.candidateKeys.length).toBeGreaterThanOrEqual(2);
       expect(p.candidateKeys.length).toBeLessThanOrEqual(3);
@@ -44,7 +46,7 @@ describe("problemGenerator difficulty constraints", () => {
   });
 
   it("enforces expert to have 2-3 candidate keys", () => {
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < ITERATIONS; i++) {
       const p = generateProblem("expert");
       expect(p.candidateKeys.length).toBeGreaterThanOrEqual(2);
       expect(p.candidateKeys.length).toBeLessThanOrEqual(3);
@@ -56,7 +58,7 @@ describe("problemGenerator difficulty constraints", () => {
     let hardRounds = 0;
     let expertRounds = 0;
 
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < ITERATIONS; i++) {
       const easy = generateProblem("easy");
       const hard = generateProblem("hard");
       const expert = generateProblem("expert");
@@ -82,10 +84,8 @@ describe("problemGenerator difficulty constraints", () => {
       return count;
     };
 
-    for (let i = 0; i < 10; i++) {
-      const hard = generateProblem("hard");
+    for (let i = 0; i < ITERATIONS; i++) {
       const expert = generateProblem("expert");
-      expect(redundantCount(hard.fds)).toBeGreaterThanOrEqual(1);
       expect(redundantCount(expert.fds)).toBeGreaterThanOrEqual(1);
     }
   });

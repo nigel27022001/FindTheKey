@@ -1,41 +1,147 @@
-/**
- * problemGenerator.ts
- * Randomly generates relational schema problems with FDs at four difficulty levels.
- */
-
-import { computeClosure, findAllCandidateKeys, getCombinations } from "./fdAlgorithms";
+// problemGenerator.ts
+import { computeClosure, findAllCandidateKeys, lhsContainsCandidateKey } from "./fdAlgorithms";
 import type { FD } from "./fdAlgorithms";
+import { passesStructuralProfile } from "./constraintAlgorithms";
 
 export type Difficulty = "easy" | "medium" | "hard" | "expert";
 
 export interface Problem {
-  allAttrs:      string[];
-  fds:           FD[];
+  allAttrs: string[];
+  fds: FD[];
   candidateKeys: string[][];
 }
 
+// A - number of attrs, F - number of functional dependencies, 
+// K - number of candidate keys, KL - number of attributes in candidate key
 interface DifficultyConfig {
   minA: number; maxA: number;
   minF: number; maxF: number;
   minK: number; maxK: number;
+  minKL: number; maxKL: number;
 }
 
 export const DIFFICULTY_CONFIG: Record<Difficulty, DifficultyConfig> = {
-  easy:   { minA: 3, maxA: 4, minF: 2, maxF: 3, minK: 1, maxK: 1 },
-  medium: { minA: 4, maxA: 5, minF: 3, maxF: 4, minK: 1, maxK: 2 },
-  hard:   { minA: 5, maxA: 6, minF: 4, maxF: 6, minK: 2, maxK: 3 },
-  expert: { minA: 6, maxA: 7, minF: 5, maxF: 8, minK: 2, maxK: 3 },
+  easy:   { minA: 3, maxA: 4, minF: 2, maxF: 3, minK: 1, maxK: 1, minKL: 1, maxKL: 1},
+  medium: { minA: 4, maxA: 5, minF: 3, maxF: 4, minK: 1, maxK: 2, minKL: 1, maxKL: 2},
+  hard:   { minA: 5, maxA: 6, minF: 5, maxF: 6, minK: 2, maxK: 3, minKL: 2, maxKL: 3},
+  expert: { minA: 6, maxA: 6, minF: 6, maxF: 7, minK: 2, maxK: 3, minKL: 2, maxKL: 3},
+
 };
 
 export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
-  easy:   "3–4 attrs · 2–3 FDs · exactly 1 key",
+  easy: "3–4 attrs · 2–3 FDs · exactly 1 key",
   medium: "4–5 attrs · 3–4 FDs · 1–2 keys",
-  hard:   "5–6 attrs · 4–6 FDs · 2–3 keys · deeper chains",
-  expert: "6–7 attrs · 5–8 FDs · 2–3 keys · high overlap/noise",
+  hard: "5–6 attrs · 5–6 FDs · 2–3 keys · deeper transitive chains",
+  expert: "6 attrs · 6–7 FDs · 2–3 keys · high overlap/noise",
 };
 
 export const HINT_COUNTS: Record<Difficulty, number> = {
   easy: 3, medium: 3, hard: 2, expert: 1,
+};
+
+// Utils
+function isValidKeyLength(candidateKeys: string[][], cfg: DifficultyConfig) {
+  return candidateKeys.reduce(
+      (acc, key) => acc && key.length >= cfg.minKL && key.length <= cfg.maxKL, true)
+}
+
+function isValidNumberOfKeys(candidateKeys: string[][], cfg: DifficultyConfig) {
+  const nk = candidateKeys.length;
+  return nk <= cfg.maxK && nk >= cfg.minK;
+}
+
+function generateWeightedArray(percentages: number[]): number[] {
+  return percentages.flatMap((pct, ind) => Array(pct).fill(ind + 1));
+}
+
+function allAttrsReachable(allAttrs: string[], fds: FD[]): boolean {
+  const onRHS = new Set(fds.flatMap(fd => fd.rhs));
+  const onLHS = new Set(fds.flatMap(fd => fd.lhs));
+  return allAttrs.every(a => onRHS.has(a) || onLHS.has(a));
+}
+
+export function findRHSOnlyAttributes(allAttrs: string[], fds: FD[]): string[] {
+  const onLHS = new Set(fds.flatMap(fd => fd.lhs));
+  return allAttrs.filter(a => !onLHS.has(a));
+}
+/** updates FDs to include attributes that appear only on RHS. Return empty array if fail */
+function obfuscateRHSOnlyAttributes(fds: FD[], rhsOnlyAttrs: string[]): FD[] {
+  if (rhsOnlyAttrs.length === 0) return fds;
+
+  const updated: FD[] = fds.map(fd => ({ lhs: [...fd.lhs], rhs: [...fd.rhs] }));
+
+  for (const attr of rhsOnlyAttrs) {
+    const eligible = updated
+    .map((fd, idx) => ({ fd, idx }))
+    .filter(({ fd }) => !fd.lhs.includes(attr) && !fd.rhs.includes(attr));
+
+    if (eligible.length === 0) return [];
+
+    const { fd, idx } = eligible[randInt(0, eligible.length - 1)];
+
+    updated[idx] = {
+      lhs: [...fd.lhs, attr].sort(),
+      rhs: fd.rhs
+    };
+  }
+
+  return updated;
+}
+
+export function findLHSOnlyAttributes(allAttrs: string[], fds: FD[]): string[] {
+  const onRHS = new Set(fds.flatMap(fd => fd.rhs));
+  return allAttrs.filter(a => !onRHS.has(a));
+}
+
+function obfuscateLHSOnlyAttributes(fds: FD[], lhsOnlyAttrs: string[]): FD[] {
+  if (lhsOnlyAttrs.length === 0) return fds;
+
+  const updated: FD[] = fds.map(fd => ({ lhs: [...fd.lhs], rhs: [...fd.rhs] }));
+
+  for (const attr of lhsOnlyAttrs) {
+    const eligible = updated
+      .map((fd, idx) => ({ fd, idx }))
+      .filter(({ fd }) => !fd.lhs.includes(attr) && !fd.rhs.includes(attr));
+
+    if (eligible.length === 0) return [];
+
+    const { fd, idx } = eligible[randInt(0, eligible.length - 1)];
+
+    updated[idx] = {
+      lhs: fd.lhs,
+      rhs: [...fd.rhs, attr].sort(),
+    };
+  }
+
+  return updated;
+}
+
+const FD_PERCENTAGE_LHS: Record<Difficulty, number[]> = {
+  easy:   generateWeightedArray([100]),
+  medium: generateWeightedArray([50, 50]),
+  hard:   generateWeightedArray([20, 50, 30]),
+  expert: generateWeightedArray([20, 30, 30, 20]), 
+};
+
+const FD_PERCENTAGE_RHS: Record<Difficulty, Record<number, number[]>> = {
+  easy: {
+    1: generateWeightedArray([100]),
+  },
+  medium: {
+    1: generateWeightedArray([50, 50]),
+    2: generateWeightedArray([50, 50]),
+  },
+  hard: {
+    1: generateWeightedArray([100]),
+    2: generateWeightedArray([30, 50, 20]),  
+    3: generateWeightedArray([50, 30, 20]),
+  },
+  expert: {
+    1: generateWeightedArray([60, 40]),
+    2: generateWeightedArray([30, 30, 20, 20]),
+    3: generateWeightedArray([30, 30, 20, 20]),
+    4: generateWeightedArray([50, 30, 20]),
+  },
 };
 
 const ATTR_POOL = "ABCDEFGHI".split("");
@@ -47,143 +153,14 @@ const shuffle = <T>(arr: T[]): T[] => [...arr].sort(() => Math.random() - 0.5);
 
 const pick = <T>(arr: T[], k: number): T[] => shuffle(arr).slice(0, k);
 
-interface StructuralThreshold {
-  minDerivationRounds: number;
-  minOverlapRatio: number;
-  minRedundantFDs: number;
-  minNearMisses: number;
-  minAvgLhsSize: number;
-}
+const pickOne = <T>(arr: T[]): T => arr[randInt(0, arr.length - 1)];
 
-const STRUCTURAL_THRESHOLDS: Partial<Record<Difficulty, StructuralThreshold>> = {
-  hard: {
-    minDerivationRounds: 2,
-    minOverlapRatio: 0.25,
-    minRedundantFDs: 1,
-    minNearMisses: 1,
-    minAvgLhsSize: 1.4,
-  },
-  expert: {
-    minDerivationRounds: 3,
-    minOverlapRatio: 0.3,
-    minRedundantFDs: 1,
-    minNearMisses: 1,
-    minAvgLhsSize: 1.8,
-  },
-};
-
-const keySignature = (attrs: string[]): string => [...attrs].sort().join("");
-
-function closureRounds(seed: string[], fds: FD[]): number {
-  const plus = new Set(seed);
-  let rounds = 0;
-
-  while (true) {
-    let changed = false;
-
-    for (const fd of fds) {
-      if (!fd.lhs.every(a => plus.has(a))) continue;
-      for (const b of fd.rhs) {
-        if (!plus.has(b)) {
-          plus.add(b);
-          changed = true;
-        }
-      }
-    }
-
-    if (!changed) break;
-    rounds++;
-  }
-
-  return rounds;
-}
-
-function maxKeyDerivationRounds(candidateKeys: string[][], fds: FD[]): number {
-  return candidateKeys.reduce((max, key) => Math.max(max, closureRounds(key, fds)), 0);
-}
-
-function lhsOverlapRatio(allAttrs: string[], fds: FD[]): number {
-  const freq = new Map<string, number>();
-  for (const fd of fds) {
-    for (const a of fd.lhs) {
-      freq.set(a, (freq.get(a) ?? 0) + 1);
-    }
-  }
-
-  const overlappingAttrs = allAttrs.filter(a => (freq.get(a) ?? 0) > 1).length;
-  return overlappingAttrs / allAttrs.length;
-}
-
-function countRedundantFDs(fds: FD[]): number {
-  let redundant = 0;
-
-  for (let i = 0; i < fds.length; i++) {
-    const fd = fds[i];
-    const others = fds.filter((_, idx) => idx !== i);
-    const closure = computeClosure(fd.lhs, others);
-    if (fd.rhs.every(attr => closure.has(attr))) {
-      redundant++;
-    }
-  }
-
-  return redundant;
-}
-
-function averageLhsSize(fds: FD[]): number {
-  if (!fds.length) return 0;
-  const total = fds.reduce((sum, fd) => sum + fd.lhs.length, 0);
-  return total / fds.length;
-}
-
-function countNearMisses(allAttrs: string[], fds: FD[], candidateKeys: string[][]): number {
-  if (!candidateKeys.length) return 0;
-
-  const keySet = new Set(candidateKeys.map(keySignature));
-  const minKeySize = Math.min(...candidateKeys.map(k => k.length));
-  let nearMisses = 0;
-
-  for (const combo of getCombinations(allAttrs, minKeySize)) {
-    if (keySet.has(keySignature(combo))) continue;
-    const closure = computeClosure(combo, fds);
-    if (closure.size === allAttrs.length - 1) {
-      nearMisses++;
-    }
-  }
-
-  return nearMisses;
-}
-
-function passesStructuralProfile(
-  diff: Difficulty,
-  allAttrs: string[],
-  fds: FD[],
-  candidateKeys: string[][],
-): boolean {
-  const threshold = STRUCTURAL_THRESHOLDS[diff];
-  if (!threshold) return true;
-
-  const derivationRounds = maxKeyDerivationRounds(candidateKeys, fds);
-  const overlapRatio = lhsOverlapRatio(allAttrs, fds);
-  const redundantFDs = countRedundantFDs(fds);
-  const nearMisses = countNearMisses(allAttrs, fds, candidateKeys);
-  const avgLhsSize = averageLhsSize(fds);
-
-  return (
-    derivationRounds >= threshold.minDerivationRounds &&
-    overlapRatio >= threshold.minOverlapRatio &&
-    redundantFDs >= threshold.minRedundantFDs &&
-    nearMisses >= threshold.minNearMisses &&
-    avgLhsSize >= threshold.minAvgLhsSize
-  );
-}
-
-function buildFallbackProblem(diff: Difficulty): Problem {
+export function buildFallbackProblem(diff: Difficulty): Problem {
   if (diff === "easy") {
     const allAttrs = ["A", "B", "C"];
     const fds: FD[] = [{ lhs: ["A"], rhs: ["B", "C"] }];
     return { allAttrs, fds, candidateKeys: findAllCandidateKeys(allAttrs, fds) };
   }
-
   if (diff === "medium") {
     const allAttrs = ["A", "B", "C", "D"];
     const fds: FD[] = [
@@ -192,7 +169,6 @@ function buildFallbackProblem(diff: Difficulty): Problem {
     ];
     return { allAttrs, fds, candidateKeys: findAllCandidateKeys(allAttrs, fds) };
   }
-
   if (diff === "hard") {
     const allAttrs = ["A", "B", "C", "D", "E"];
     const fds: FD[] = [
@@ -204,7 +180,6 @@ function buildFallbackProblem(diff: Difficulty): Problem {
     ];
     return { allAttrs, fds, candidateKeys: findAllCandidateKeys(allAttrs, fds) };
   }
-
   const allAttrs = ["A", "B", "C", "D", "E", "F", "G"];
   const fds: FD[] = [
     { lhs: ["A"], rhs: ["C"] },
@@ -217,47 +192,88 @@ function buildFallbackProblem(diff: Difficulty): Problem {
   return { allAttrs, fds, candidateKeys: findAllCandidateKeys(allAttrs, fds) };
 }
 
-/**
- * Generate a random problem for the given difficulty.
- * Retries up to 3000 times until key-count and structural constraints are satisfied.
- */
+function hasMeetDifficultyFdRequirements(
+  diff: Difficulty,
+  fds: FD[],
+  allAttrs: string[]
+): [boolean, FD[]] {
+  switch (diff) {
+    case "easy":
+      return [true, fds];
+
+    case "medium": {
+      if (!allAttrsReachable(allAttrs, fds)) return [false, fds];
+
+      const rhsOnly = findRHSOnlyAttributes(allAttrs, fds);
+      if (rhsOnly.length > 0) {
+        fds = obfuscateRHSOnlyAttributes(fds, rhsOnly);
+        if (fds.length === 0) return [false, fds];
+      }
+
+      return [true, fds];
+    }
+
+    case "hard":
+    case "expert": {
+      if (!allAttrsReachable(allAttrs, fds)) return [false, fds];
+
+      const rhsOnly = findRHSOnlyAttributes(allAttrs, fds);
+      if (rhsOnly.length > 0) {
+        fds = obfuscateRHSOnlyAttributes(fds, rhsOnly);
+        if (fds.length === 0) return [false, fds];
+      }
+
+      const lhsOnly = findLHSOnlyAttributes(allAttrs, fds);
+      if (lhsOnly.length > 0) {
+        fds = obfuscateLHSOnlyAttributes(fds, lhsOnly);
+        if (fds.length === 0) return [false, fds];
+      }
+
+      return [true, fds];
+    }
+
+    default:
+      return [true, fds];
+  }
+}
+
+
 export function generateProblem(diff: Difficulty): Problem {
   const cfg = DIFFICULTY_CONFIG[diff];
 
   for (let attempt = 0; attempt < 3000; attempt++) {
     const numAttrs = randInt(cfg.minA, cfg.maxA);
     const allAttrs = ATTR_POOL.slice(0, numAttrs);
+
     const numFDs   = randInt(cfg.minF, cfg.maxF);
-    const fds: FD[] = [];
+    let fds: FD[] = [];
     const seen = new Set<string>();
 
     for (let i = 0; i < numFDs * 3 && fds.length < numFDs; i++) {
-      const lhsSize =
-        diff === "easy"   ? 1 :
-        diff === "medium" ? randInt(1, 2) :
-                            randInt(1, Math.min(3, numAttrs - 1));
-
-      const lhs       = pick(allAttrs, Math.min(lhsSize, numAttrs - 1)).sort();
+      const lhsSize = pickOne(FD_PERCENTAGE_LHS[diff]);
+      const lhs     = pick(allAttrs, lhsSize).sort();
       const remaining = allAttrs.filter(a => !lhs.includes(a));
       if (!remaining.length) continue;
 
-      const rhsSize =
-        diff === "easy" ? randInt(1, 2) :
-                          randInt(1, Math.min(3, remaining.length));
+      // Fallback RHS table entry — if lhsSize has no entry use size 1
+      const rhsTable = FD_PERCENTAGE_RHS[diff][lhsSize] ?? [1];
+      const rhsSize  = pickOne(rhsTable);
+      const rhs      = pick(remaining, Math.min(rhsSize, remaining.length)).sort();
+      const key      = lhs.join("") + "->" + rhs.join("");
 
-      const rhs = pick(remaining, rhsSize).sort();
-      const key = lhs.join("") + "->" + rhs.join("");
       if (!seen.has(key)) { seen.add(key); fds.push({ lhs, rhs }); }
     }
 
-    if (fds.length < 2) continue;
-
     const candidateKeys = findAllCandidateKeys(allAttrs, fds);
-    const nk = candidateKeys.length;
+
+    const [hasMeet, newFds] = hasMeetDifficultyFdRequirements(diff, fds, allAttrs);
+
+    if (!hasMeet) continue
+    fds = newFds;
 
     if (
-      nk >= cfg.minK &&
-      nk <= cfg.maxK &&
+      isValidKeyLength(candidateKeys, cfg) && 
+      isValidNumberOfKeys(candidateKeys, cfg) &&
       candidateKeys.some(k => k.length < numAttrs) &&
       passesStructuralProfile(diff, allAttrs, fds, candidateKeys)
     ) {
