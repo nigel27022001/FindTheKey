@@ -21,18 +21,17 @@ interface DifficultyConfig {
 }
 
 export const DIFFICULTY_CONFIG: Record<Difficulty, DifficultyConfig> = {
-  easy: { minA: 3, maxA: 4, minF: 2, maxF: 3, minK: 1, maxK: 1, minKL: 1, maxKL: 1 },
-  medium: { minA: 4, maxA: 5, minF: 3, maxF: 4, minK: 1, maxK: 2, minKL: 1, maxKL: 2 },
-  hard: { minA: 5, maxA: 6, minF: 5, maxF: 6, minK: 2, maxK: 3, minKL: 2, maxKL: 3 },
-  expert: { minA: 6, maxA: 6, minF: 6, maxF: 7, minK: 2, maxK: 3, minKL: 2, maxKL: 3 },
-
+  easy:   { minA: 3, maxA: 4, minF: 2, maxF: 3, minK: 1, maxK: 1, minKL: 1, maxKL: 1 },
+  medium: { minA: 4, maxA: 5, minF: 4, maxF: 5, minK: 1, maxK: 2, minKL: 1, maxKL: 2 },
+  hard:   { minA: 5, maxA: 6, minF: 5, maxF: 6, minK: 2, maxK: 3, minKL: 2, maxKL: 3 },
+  expert: { minA: 6, maxA: 7, minF: 6, maxF: 7, minK: 2, maxK: 3, minKL: 2, maxKL: 3 },
 };
 
 export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
   easy: "3–4 attrs · 2–3 FDs · exactly 1 key",
   medium: "4–5 attrs · 3–4 FDs · 1–2 keys",
   hard: "5–6 attrs · 5–6 FDs · 2–3 keys · deeper transitive chains",
-  expert: "6 attrs · 6–7 FDs · 2–3 keys · high overlap/noise",
+  expert: "6-7 attrs · 7–8 FDs · 2–3 keys · high overlap/noise",
 };
 
 export const HINT_COUNTS: Record<Difficulty, number> = {
@@ -117,12 +116,12 @@ function obfuscateLHSOnlyAttributes(fds: FD[], lhsOnlyAttrs: string[]): FD[] {
 }
 
 const FD_PERCENTAGE_LHS: Record<Difficulty, number[]> = {
-  easy: generateWeightedArray([100]),
-  medium: generateWeightedArray([50, 50]),
-  hard: generateWeightedArray([20, 50, 30]),
-  expert: generateWeightedArray([20, 30, 30, 20]),
+  easy:   generateWeightedArray([100]),           // always size-1 — keeps easy clean
+  medium: generateWeightedArray([50, 50] ),         // 70% size-1, 30% size-2 — reduces redundant LHS
+  hard:   generateWeightedArray([20, 50, 30]),
+  expert: generateWeightedArray([40, 30, 20, 10]), // more size-1 to encourage A→B→C→D chains
 };
-
+ 
 const FD_PERCENTAGE_RHS: Record<Difficulty, Record<number, number[]>> = {
   easy: {
     1: generateWeightedArray([100]),
@@ -138,12 +137,12 @@ const FD_PERCENTAGE_RHS: Record<Difficulty, Record<number, number[]>> = {
   },
   expert: {
     1: generateWeightedArray([60, 40]),
-    2: generateWeightedArray([30, 30, 20, 20]),
-    3: generateWeightedArray([30, 30, 20, 20]),
+    2: generateWeightedArray([30, 30, 20]),
+    3: generateWeightedArray([30, 30, 20]),
     4: generateWeightedArray([50, 30, 20]),
   },
 };
-
+ 
 const ATTR_POOL = "ABCDEFGHI".split("");
 
 const randInt = (a: number, b: number): number =>
@@ -156,6 +155,7 @@ const pick = <T>(arr: T[], k: number): T[] => shuffle(arr).slice(0, k);
 const pickOne = <T>(arr: T[]): T => arr[randInt(0, arr.length - 1)];
 
 export function buildFallbackProblem(diff: Difficulty): Problem {
+  console.log("Fallback"); 
   if (diff === "easy") {
     const allAttrs = ["A", "B", "C"];
     const fds: FD[] = [{ lhs: ["A"], rhs: ["B", "C"] }];

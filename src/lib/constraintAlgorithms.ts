@@ -4,7 +4,8 @@ import type { FD } from "./fdAlgorithms";
 import type { Difficulty } from "./problemGenerator";
 
 export interface HardLimits {
-  minDerivationDepthRatio: number; // derivationRounds / numAttrs
+  minDerivationDepthRatio: number; // derivationRounds / numAttrs — floor on chain depth
+  maxDerivationDepthRatio: number; // derivationRounds / numAttrs — ceiling on chain depth
   keyInLHSRatio:           number; // if candidate key is in LHS of FD
   meaningfulRedundantFdsRatio:  number;
 }
@@ -47,26 +48,45 @@ const SCORE_WEIGHTS = {
 
 // ─── Thresholds ───────────────────────────────────────────────────────────────
 
-
 export const STRUCTURAL_THRESHOLDS: Partial<Record<Difficulty, StructuralThreshold>> = {
+  easy: {
+    hardLimits: {
+      minDerivationDepthRatio: 0,     // ≥1 round guaranteed by key-length check elsewhere
+      maxDerivationDepthRatio: 0.4,  // at most 1 round (1 / 3 attrs) — no transitive chaining
+      keyInLHSRatio:           1.0,   // unconstrained for easy
+      meaningfulRedundantFdsRatio: 0, // no redundant-LHS noise
+    },
+    scoreThreshold: { minScore: 0, maxScore: 0.0 }, // fully clean — zero noise, zero chain shortcuts
+  },
+  medium: {
+    hardLimits: {
+      minDerivationDepthRatio: 0,   // at least 2 rounds (2 / 5 attrs) — one transitive step
+      maxDerivationDepthRatio: 0.4,   // at most 2 rounds (2 / 4 attrs) — cap at one step
+      keyInLHSRatio:           1.0,   // unconstrained for medium
+      meaningfulRedundantFdsRatio: 0, // no redundant-LHS noise
+    },
+    scoreThreshold: { minScore: 0, maxScore: 0.1 }, // near-clean — no distracting noise
+  },
   hard: {
     hardLimits: {
-      minDerivationDepthRatio: 0.3,  // rounds / numAttrs — ~2 rounds on 6 attrs
-      keyInLHSRatio:           0.5,  // at most half the keys directly visible
-      meaningfulRedundantFdsRatio:  0,
+      minDerivationDepthRatio: 0.3,   // ~2 rounds on 6 attrs
+      maxDerivationDepthRatio: 1.0,   // no ceiling — depth is a feature not a bug for hard
+      keyInLHSRatio:           0.5,   // at most half the keys directly visible
+      meaningfulRedundantFdsRatio: 0,
     },
-    scoreThreshold: { minScore: 0, maxScore: 0.3 },
+    scoreThreshold: { minScore: 0.1, maxScore: 0.4 }, // moderate noise budget
   },
   expert: {
     hardLimits: {
-      minDerivationDepthRatio: 0.5,  // ~3 rounds on 7 attrs
-      keyInLHSRatio:           0.5,  // no key may appear directly as LHS
-      meaningfulRedundantFdsRatio:  0.1,
+      minDerivationDepthRatio: 0.45,  // ≥3 rounds on 7 attrs (3/7 ≈ 0.43) — deep chain required
+      maxDerivationDepthRatio: 1.0,   // no ceiling
+      keyInLHSRatio:           0.5,
+      meaningfulRedundantFdsRatio: 0.2,
     },
-    scoreThreshold: { minScore: 0.3, maxScore: 1.0 },
+    scoreThreshold: { minScore: 0.5, maxScore: 1.0 },
   },
 };
-
+ 
 
 
 const keySignature = (attrs: string[]): string => [...attrs].sort().join("");
@@ -204,9 +224,10 @@ export function passesStructuralProfile(
   const profile = computeScoredProfile(allAttrs, fds, candidateKeys);
 
   if (profile.derivationDepthRatio < threshold.hardLimits.minDerivationDepthRatio) return false;
+  if (profile.derivationDepthRatio > threshold.hardLimits.maxDerivationDepthRatio) return false;
   if (profile.keyInLHSRatio        > threshold.hardLimits.keyInLHSRatio)           return false;
   if (profile.meaningfulRedundantFdsRatio < threshold.hardLimits.meaningfulRedundantFdsRatio) return false;  
-
+  
   return profile.normalisedScore >= threshold.scoreThreshold.minScore 
     && profile.normalisedScore <= threshold.scoreThreshold.maxScore;
 }
