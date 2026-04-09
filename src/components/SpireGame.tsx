@@ -88,12 +88,12 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
         // Map + health + gold + battleLog are already set via lazy initialisers.
         // Restore game-hook stats (score, streak, round, potions).
         game.restoreStats({
-          score:       savedRun.score,
-          streak:      savedRun.streak,
-          round:       savedRun.round,
-          hintsLeft:   savedRun.hintsLeft,
+          score: savedRun.score,
+          streak: savedRun.streak,
+          round: savedRun.round,
+          hintsLeft: savedRun.hintsLeft,
           closureUses: savedRun.closureUses,
-          skipUses:    savedRun.skipUses,
+          skipUses: savedRun.skipUses,
         });
         setMap(savedRun.map);
         setPlayerHealth(savedRun.playerHealth);
@@ -104,15 +104,16 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
         appendLog("Run resumed from save.");
       } else {
         // ── Fresh run ─────────────────────────────────────────────────────
-      setMap(generateSpireMap(15, 5));
-      appendLog("Run started. Map generated.");
-      game.clearPotions();
-      setScore(0);
-      setCombo(1.0);
-      setIsSpireComplete(false);
+        setMap(generateSpireMap(15, 5));
+        appendLog("Run started. Map generated.");
+        game.clearPotions();
+        setScore(0);
+        setCombo(1.0);
+        setIsSpireComplete(false);
       }
       initialized.current = true;
-    }  }, []);
+    }
+  }, []);
 
   const handleNodeClick = (node: SpireNode) => {
     if (currentNode?.id === node.id) return;
@@ -473,6 +474,12 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
   }, [game.allSolved]);
 
   useEffect(() => {
+    if (activeEnemy && game.problemSolved && currentProblem) {
+      setBattleTimer((battleTimer ?? 0) + currentProblem.timer);
+    }
+  }, [game.problemSolved])
+
+  useEffect(() => {
     if (activeEnemy && game.gameOver) {
       // Enemy projectile themed to the enemy
       const theme = ENEMY_ATTACK_THEME[activeEnemy.name] ?? { emoji: "💥", label: "Attack" };
@@ -516,8 +523,8 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
 
   // Game over sound
   useEffect(() => {
-    if (playerHealth <= 0) { 
-      sfx.stopBossBgm(); 
+    if (playerHealth <= 0) {
+      sfx.stopBossBgm();
       sfx.sfxGameOver();
       clearSpireSave();
     }
@@ -531,11 +538,11 @@ export const SpireGame: FC<SpireGameProps> = ({ onBack, game }) => {
     gold,
     battleLog,
     score,
-    streak:      game.streak,
-    round:       game.round,
-    hintsLeft:   game.hintsLeft,
+    streak: game.streak,
+    round: game.round,
+    hintsLeft: game.hintsLeft,
     closureUses: game.closureUses,
-    skipUses:    game.skipUses,
+    skipUses: game.skipUses,
   });
 
   return (
