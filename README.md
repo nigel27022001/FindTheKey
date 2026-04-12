@@ -1,73 +1,49 @@
-# React + TypeScript + Vite
+# FindTheKey 🗝️
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Developed By Bertrand, Aaron, Nigel and Yuntae
+Github: https://github.com/nigel27022001/FindTheKey
+Deployed on: https://spire-of-fds.vercel.app/
 
-Currently, two official plugins are available:
+A gamified educational application designed to help players intuitively learn and practice database normalization concepts, specifically discovering Candidate Keys and Superkeys through relational Functional Dependencies (FDs).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+### 🎮 Game Modes
 
-## React Compiler
+*   **Practice Mode:** Work through randomly generated Functional Dependencies. Build Candidate Keys by selecting attributes and computing closures. Correct answers build your streak, while wrong answers provide helpful step-by-step hints on why your selection failed to cover the relation (`Not a Superkey`), or wasn't minimal (`Superkey — not minimal`). Test your skills from Easy schemas to Expert multi-relation puzzles.
+*   **Spire of FDs:** A punishing roguelike twist on database normalization. Ascend the Spire as the rogue *Data Knight*, facing anomalies corrupted by shattered schemas! 
+    *   **Combat:** Fights involve quickly solving FDs. You must deal damage by discovering candidate keys before the enemy destroys you when their action timer expires.
+    *   **Procedural Maps:** Navigate branching paths through Minions, Elites, Bosses, Mystery Encounters, Merchants, and Rest Stops.
+    *   **Potion Belt:** Manage your inventory with *Hint Scrolls*, *Closure Potions*, and powerful *Skip Potions* to survive the Spire.
+    *   **Dynamic Scaling:** Problems hit harder and time gets tighter as you face stronger foes. 
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 🛠️ Tech Stack
+- **Frontend:** React 19 (managed by Vite)
+- **Language:** TypeScript 
+- **Styling:** Tailwind CSS v4
+- **Icons:** Lucide React
+- **Testing:** Vitest
 
-## Expanding the ESLint configuration
+### 🚀 Getting Started
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+1. **Install dependencies:**
+   ```bash
+   npm install
+   ```
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+2. **Run the development server:**
+   ```bash
+   npm run dev
+   ```
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+3. **Open in Browser:**
+   Navigate to `http://localhost:5173/` in your web browser.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 🧪 Tests
+
+To run the core test suite (which covers the FD algorithms, algorithms scaling, and Spire map generation):
+```bash
+npm test
 ```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+To run tests in watch mode:
+```bash
+npm run test:watch
 ```
