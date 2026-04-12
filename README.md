@@ -1,8 +1,8 @@
 # FindTheKey 🗝️
 
-Developed By Bertrand, Aaron, Nigel and Yuntae
-Github: https://github.com/nigel27022001/FindTheKey
-Deployed on: https://spire-of-fds.vercel.app/
+Developed By Bertrand, Aaron, Nigel and Yuntae \
+Github: https://github.com/nigel27022001/FindTheKey \
+Deployed on: https://spire-of-fds.vercel.app/ 
 
 A gamified educational application designed to help players intuitively learn and practice database normalization concepts, specifically discovering Candidate Keys and Superkeys through relational Functional Dependencies (FDs).
 
